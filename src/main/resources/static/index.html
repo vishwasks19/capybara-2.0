@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OILTRACE - Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+                <line x1="12" y1="2" x2="12" y2="4"></line>
+                <line x1="12" y1="20" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="4" y2="12"></line>
+                <line x1="20" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span class="logo-text">OILTRACE</span>
+        </div>
+        <nav>
+            <a href="index.html" class="active">Dashboard</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-layout">
+            <!-- Left Column -->
+            <div>
+                <div class="badge badge-blue" style="margin-bottom: 2rem;">
+                    SIH 2026 • MARITIME INTELLIGENCE PLATFORM
+                </div>
+                
+                <h1 class="hero-title">
+                    Detect. <span class="text-blue">Track.</span> Attribute.
+                </h1>
+                
+                <p class="hero-subtitle">
+                    AI-powered oil spill detection and vessel attribution using SAR satellite imagery and AIS data. Identify illegal discharges and trace environmental violations back to responsible vessels in real-time.
+                </p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+                        </div>
+                        <div>
+                            <div class="feature-title">SAR Image Analysis</div>
+                            <div class="feature-desc">Multi-look processing of synthetic aperture radar backscatter</div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon text-red">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C12 2 15 6 15 10C15 11.7 13.7 13 12 13C10.3 13 9 11.7 9 10C9 6 12 2 12 2Z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="feature-title">Oil Spill Detection</div>
+                            <div class="feature-desc">Deep learning segmentation with 94%+ detection accuracy</div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon text-green">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div>
+                            <div class="feature-title">AIS Correlation</div>
+                            <div class="feature-desc">Cross-referencing spill temporal bounds with AIS transponder data</div>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon text-yellow">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        </div>
+                        <div>
+                            <div class="feature-title">Vessel Attribution</div>
+                            <div class="feature-desc">Probabilistic attribution with trajectory and proximity scoring</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div>
+                        <div class="metric-value">94.7%</div>
+                        <div class="metric-label">Detection Accuracy</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">&lt; 45 min</div>
+                        <div class="metric-label">Processing Time</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">500+</div>
+                        <div class="metric-label">Vessels Analysed</div>
+                    </div>
+                    <div>
+                        <div class="metric-value">12 EEZs</div>
+                        <div class="metric-label">Coverage Area</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div>
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-blue);"></div>
+                        SAR IMAGE UPLOAD
+                    </div>
+                    
+                    <div class="upload-area" id="drop-zone">
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16V8M8 12l4-4 4 4"></path>
+                            </svg>
+                        </div>
+                        <h3 style="margin-bottom: 0.5rem;">Upload SAR Satellite Image</h3>
+                        <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 1rem;">Drag & drop your image here or browse files</p>
+                        <div class="badge font-mono text-secondary" style="background: var(--bg-dark); border: none;">GeoTIFF • TIFF • PNG • JPG</div>
+                    </div>
+                    
+                    <div class="grid-2" style="margin-bottom: 1.5rem;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Acquisition Date</label>
+                            <input type="text" class="form-control" value="2026-08-20" readonly>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Sensor Type</label>
+                            <input type="text" class="form-control" value="Sentinel-1 SAR" readonly>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="window.location.href='analysis.html'">Analyze Image</button>
+                    <div class="text-center text-secondary font-mono" style="font-size: 0.75rem;">Processing time approx. 45 seconds per 500MB scene</div>
+                </div>
+                
+                <div class="card">
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1rem; letter-spacing: 1px;">RECENT ANALYSES</div>
+                    <div class="analysis-list">
+                        <div class="analysis-item">
+                            <span>S1A_20260818</span>
+                            <span class="text-secondary">2026-08-18</span>
+                            <span class="badge badge-red">Spill Detected</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span>S1B_20260815</span>
+                            <span class="text-secondary">2026-08-15</span>
+                            <span class="badge badge-green">Clean</span>
+                        </div>
+                        <div class="analysis-item">
+                            <span>S1A_20260812</span>
+                            <span class="text-secondary">2026-08-12</span>
+                            <span class="badge badge-red">Spill Detected</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>

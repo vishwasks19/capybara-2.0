@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OILTRACE - About</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .about-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .mission-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+        }
+        
+        .metrics-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+        }
+
+        .metric-row {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .metric-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .pipeline-item {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .pipeline-item:last-child {
+            margin-bottom: 0;
+        }
+        .pipeline-number {
+            font-family: var(--font-mono);
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 1.1rem;
+            min-width: 30px;
+        }
+
+        .tech-stack-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .tech-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .regulatory-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .regulatory-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+                <line x1="12" y1="2" x2="12" y2="4"></line>
+                <line x1="12" y1="20" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="4" y2="12"></line>
+                <line x1="20" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span class="logo-text">OILTRACE</span>
+        </div>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="about.html" class="active">About</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="badge badge-blue" style="margin-bottom: 2rem;">
+            SIH 2026 • TEAM PROJECT
+        </div>
+        
+        <h1 class="hero-title" style="font-size: 3.5rem;">
+            About <span class="text-blue">OILTRACE</span>
+        </h1>
+        
+        <p class="hero-subtitle">
+            An AI-powered maritime surveillance platform developed for Smart India Hackathon 2026. OILTRACE fuses SAR satellite imagery with AIS vessel transponder data to detect illegal oil discharges and attribute them to responsible vessels in near real-time.
+        </p>
+
+        <div class="about-grid">
+            <!-- Row 1: Mission & Metrics -->
+            <div class="mission-card" style="grid-column: 1; grid-row: 1;">
+                <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1.5rem; letter-spacing: 1px;">MISSION</div>
+                
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.7;">
+                    Marine oil pollution is one of the most persistent threats to ocean ecosystems. Detecting spills early and attributing responsibility is critical for enforcement, remediation, and deterrence. Traditional monitoring relies on costly aerial surveillance with limited coverage and delayed response.
+                </p>
+                
+                <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.7;">
+                    OILTRACE leverages Sentinel-1 SAR satellite data — which can image through cloud cover at any time of day — combined with global AIS vessel tracking to provide continuous, automated monitoring of Exclusive Economic Zones. Deep learning segmentation models identify spill regions with >94% accuracy, while probabilistic trajectory analysis scores candidate vessels.
+                </p>
+            </div>
+
+            <div class="metrics-card" style="grid-column: 2; grid-row: 1;">
+                <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1.5rem; letter-spacing: 1px;">PLATFORM METRICS</div>
+                
+                <div class="metric-row">
+                    <div class="text-blue font-mono" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">94.7%</div>
+                    <div class="text-secondary" style="font-size: 0.85rem;">Detection Accuracy</div>
+                </div>
+                
+                <div class="metric-row">
+                    <div class="text-blue font-mono" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">&lt; 45 min</div>
+                    <div class="text-secondary" style="font-size: 0.85rem;">End-to-end Latency</div>
+                </div>
+                
+                <div class="metric-row">
+                    <div class="text-blue font-mono" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">12 EEZs</div>
+                    <div class="text-secondary" style="font-size: 0.85rem;">Monitored Zones</div>
+                </div>
+                
+                <div class="metric-row">
+                    <div class="text-blue font-mono" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">500+</div>
+                    <div class="text-secondary" style="font-size: 0.85rem;">Vessels Analysed</div>
+                </div>
+                
+                <div class="metric-row">
+                    <div class="text-blue font-mono" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">Sentinel-1</div>
+                    <div class="text-secondary" style="font-size: 0.85rem;">Primary Sensor</div>
+                </div>
+            </div>
+
+            <!-- Row 2: Pipeline & Tech Stack -->
+            <div class="mission-card" style="grid-column: 1; grid-row: 2;">
+                <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 2rem; letter-spacing: 1px;">TECHNICAL PIPELINE</div>
+                
+                <div class="pipeline-item">
+                    <div class="pipeline-number">01</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">SAR Ingestion</div>
+                        <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.6;">GRD/SLC product preprocessing — radiometric calibration, speckle filtering (Lee 5×5), terrain correction.</div>
+                    </div>
+                </div>
+
+                <div class="pipeline-item">
+                    <div class="pipeline-number">02</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Spill Segmentation</div>
+                        <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.6;">U-Net with ResNet-50 encoder trained on annotated Sentinel-1 scenes. Outputs per-pixel spill probability mask.</div>
+                    </div>
+                </div>
+
+                <div class="pipeline-item">
+                    <div class="pipeline-number">03</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Spill Characterisation</div>
+                        <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.6;">Connected-component labelling, area estimation (geographic projection), centroid coordinates, severity grading.</div>
+                    </div>
+                </div>
+
+                <div class="pipeline-item">
+                    <div class="pipeline-number">04</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">AIS Retrieval</div>
+                        <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.6;">Query AIS historical archive for vessels within 50 nm of spill centroid in ±6h acquisition window.</div>
+                    </div>
+                </div>
+
+                <div class="pipeline-item">
+                    <div class="pipeline-number">05</div>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 4px;">Attribution Scoring</div>
+                        <div class="text-secondary" style="font-size: 0.85rem; line-height: 1.6;">Trajectory interpolation, spatial proximity, temporal correlation, and vessel-class oil-carriage probability combined into composite score.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 2rem;">
+                <div class="metrics-card">
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1.5rem; letter-spacing: 1px;">TECHNOLOGY STACK</div>
+                    
+                    <div class="tech-stack-grid">
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">ML / CV</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                PyTorch<br>U-Net<br>OpenCV<br>GDAL
+                            </div>
+                        </div>
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">Satellite</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                Sentinel-1 SAR<br>ESA SNAP<br>GeoTIFF
+                            </div>
+                        </div>
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">AIS Data</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                MarineTraffic API<br>exactEarth<br>LRIT
+                            </div>
+                        </div>
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">Backend</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                FastAPI<br>PostgreSQL<br>PostGIS<br>Redis
+                            </div>
+                        </div>
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">Frontend</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                React 19<br>Tailwind CSS v4<br>Vite
+                            </div>
+                        </div>
+                        <div class="tech-box">
+                            <div class="text-blue font-mono" style="font-size: 0.75rem; margin-bottom: 8px;">Infra</div>
+                            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.6;">
+                                AWS GovCloud<br>Docker<br>Terraform
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-card">
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1.5rem; letter-spacing: 1px;">REGULATORY CONTEXT</div>
+                    
+                    <div class="regulatory-item">
+                        <div class="text-blue" style="font-weight: 600; margin-bottom: 4px;">MARPOL Annex I</div>
+                        <div class="text-secondary" style="font-size: 0.85rem;">Detection supports enforcement of zero-discharge zones</div>
+                    </div>
+
+                    <div class="regulatory-item">
+                        <div class="text-blue" style="font-weight: 600; margin-bottom: 4px;">UNCLOS Art. 220</div>
+                        <div class="text-secondary" style="font-size: 0.85rem;">Evidence collection for coastal state jurisdiction</div>
+                    </div>
+
+                    <div class="regulatory-item">
+                        <div class="text-blue" style="font-weight: 600; margin-bottom: 4px;">IMO Resolution</div>
+                        <div class="text-secondary" style="font-size: 0.85rem;">Aligned with MEPC.1/Circ.736 satellite monitoring guidance</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action Buttons -->
+        <div style="display: flex; gap: 1rem; margin-top: 3rem; margin-bottom: 2rem;">
+            <button class="btn btn-primary" onclick="window.location.href='analysis.html'">Start Analysis</button>
+            <button class="btn btn-outline" onclick="window.location.href='attribution.html'">View Vessel Attribution &rarr;</button>
+        </div>
+    </div>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>

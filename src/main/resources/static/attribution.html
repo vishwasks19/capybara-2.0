@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OILTRACE - Vessel Attribution</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .analysis-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 1.5rem;
+            min-height: calc(100vh - 180px);
+            margin-bottom: 1.5rem;
+        }
+        
+        .map-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .map-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(14, 22, 32, 0.8);
+            backdrop-filter: blur(8px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+        }
+        
+        .map-canvas {
+            flex-grow: 1;
+            background-image: 
+                linear-gradient(rgba(30, 45, 61, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 45, 61, 0.4) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-color: #0b141e;
+            position: relative;
+        }
+        
+        .sidebar-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .vessel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .vessel-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vessel-card.active {
+            border-color: var(--accent-red);
+            background: rgba(255, 59, 59, 0.05);
+        }
+
+        .vessel-card:hover:not(.active) {
+            border-color: var(--text-secondary);
+            background: var(--bg-panel);
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+        .detail-row:last-child { border-bottom: none; }
+        
+        .confidence-bar {
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            margin: 0.5rem 0 1rem 0;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: var(--accent-red);
+            width: 94%;
+        }
+
+        .score-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+        }
+        .score-label { width: 100px; color: var(--text-secondary); }
+        .score-bar { flex-grow: 1; height: 4px; background: var(--border-color); border-radius: 2px; }
+        .score-fill { height: 100%; background: var(--accent-red); }
+        .score-value { width: 20px; text-align: right; font-family: var(--font-mono); }
+
+        /* Map SVG Graphics */
+        .map-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+        }
+
+        .trajectory-path {
+            fill: none;
+            stroke-width: 4;
+            stroke-dasharray: 10, 10;
+        }
+
+        .trajectory-red { stroke: var(--accent-red); }
+        .trajectory-yellow { stroke: var(--accent-yellow); }
+        .trajectory-blue { stroke: var(--accent-blue); }
+
+        .vessel-triangle {
+            fill: currentColor;
+        }
+
+        .spill-zone {
+            position: absolute;
+            top: 50%;
+            left: 30%;
+            width: 300px;
+            height: 150px;
+            border: 2px solid var(--accent-red);
+            background: radial-gradient(ellipse at center, rgba(255,59,59,0.3) 0%, rgba(255,59,59,0) 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="4"></circle>
+                <line x1="12" y1="2" x2="12" y2="4"></line>
+                <line x1="12" y1="20" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="4" y2="12"></line>
+                <line x1="20" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span class="logo-text">OILTRACE</span>
+        </div>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="analysis.html">Analysis</a>
+            <a href="attribution.html" class="active">Vessel Attribution</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <div class="container" style="padding-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="text-secondary font-mono" style="font-size: 0.85rem;">
+                Dashboard / Detection Results / <span class="text-blue">Vessel Attribution</span>
+            </div>
+            <div class="text-blue font-mono" style="font-size: 0.85rem;">
+                3 vessels analysed • 94% top match
+            </div>
+        </div>
+
+        <div class="analysis-layout">
+            <!-- Map Area -->
+            <div class="map-container">
+                <div class="map-header">
+                    <div class="font-mono text-secondary" style="font-size: 0.85rem; letter-spacing: 1px;">
+                        MARITIME INTELLIGENCE MAP — ARABIAN SEA
+                    </div>
+                    <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        <span style="display:flex;align-items:center;gap:4px;"><span style="color:var(--accent-red)">—</span> High Confidence</span>
+                        <span style="display:flex;align-items:center;gap:4px;"><span style="color:var(--accent-yellow)">—</span> Medium</span>
+                        <span style="display:flex;align-items:center;gap:4px;"><span style="color:var(--accent-blue)">—</span> Low</span>
+                        <span style="display:flex;align-items:center;gap:4px;"><div class="status-dot" style="background:var(--accent-red)"></div> Spill Zone</span>
+                    </div>
+                </div>
+                <div class="map-canvas">
+                    <div class="spill-zone"></div>
+                    <div class="text-red font-mono" style="position: absolute; top: 58%; left: 30%; transform: translateX(-50%); z-index: 6;">
+                        SPILL • 12.4 km²
+                    </div>
+
+                    <!-- SVG Overlay for Trajectories -->
+                    <svg class="map-svg" viewBox="0 0 800 600">
+                        <!-- Yellow Trajectory -->
+                        <path d="M 600 600 Q 550 400 400 200" class="trajectory-path trajectory-yellow" />
+                        <g transform="translate(400, 200) rotate(-45)">
+                            <polygon points="0,-15 10,10 -10,10" class="vessel-triangle" style="color: var(--accent-yellow);" />
+                        </g>
+                        <text x="420" y="190" fill="var(--accent-yellow)" font-family="var(--font-mono)" font-size="16">SEA HORIZON</text>
+
+                        <!-- Blue Trajectory -->
+                        <path d="M 150 600 Q 250 500 300 450" class="trajectory-path trajectory-blue" />
+                        <g transform="translate(300, 450) rotate(45)">
+                            <polygon points="0,-15 10,10 -10,10" class="vessel-triangle" style="color: var(--accent-blue);" />
+                        </g>
+                        <text x="320" y="440" fill="var(--accent-blue)" font-family="var(--font-mono)" font-size="16">BLUE MERIDIAN</text>
+
+                        <!-- Red Trajectory (Attributed) -->
+                        <path d="M 100 500 Q 150 400 350 250" class="trajectory-path trajectory-red" style="stroke-dasharray: none;" />
+                        <g transform="translate(350, 250) rotate(45)">
+                            <polygon points="0,-20 15,15 -15,15" class="vessel-triangle" style="color: var(--accent-red);" />
+                        </g>
+                        <text x="370" y="240" fill="var(--accent-red)" font-family="var(--font-mono)" font-size="18" font-weight="bold">MV OCEAN STAR</text>
+                    </svg>
+
+                    <div class="font-mono text-secondary" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 0.75rem;">
+                        19°N - 20°N<br>
+                        72°E - 73°E
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="sidebar-section" style="margin-bottom: 0;">
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1rem; letter-spacing: 1px;">VESSEL ATTRIBUTION</div>
+                    
+                    <div class="vessel-list">
+                        <div class="vessel-card active">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div class="status-dot" style="background: var(--accent-red);"></div>
+                                <div>
+                                    <div style="font-weight: 600;">MV OCEAN STAR</div>
+                                    <div class="text-secondary" style="font-size: 0.8rem;">Chemical Tanker</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="text-red font-mono" style="font-size: 1.1rem; font-weight: 700;">94%</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">match</div>
+                            </div>
+                        </div>
+
+                        <div class="vessel-card">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div class="status-dot" style="background: var(--accent-yellow);"></div>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--accent-yellow);">SEA HORIZON</div>
+                                    <div class="text-secondary" style="font-size: 0.8rem;">Oil Tanker</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="text-yellow font-mono" style="font-size: 1.1rem; font-weight: 700;">81%</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">match</div>
+                            </div>
+                        </div>
+
+                        <div class="vessel-card">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <div class="status-dot" style="background: var(--accent-blue);"></div>
+                                <div>
+                                    <div style="font-weight: 600; color: var(--accent-blue);">BLUE MERIDIAN</div>
+                                    <div class="text-secondary" style="font-size: 0.8rem;">Bulk Carrier</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="text-blue font-mono" style="font-size: 1.1rem; font-weight: 700;">67%</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">match</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section" style="flex-grow: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div class="text-secondary font-mono" style="font-size: 0.8rem; letter-spacing: 1px;">VESSEL DETAILS</div>
+                        <div class="badge badge-red">#1 RANKED</div>
+                    </div>
+                    
+                    <h3 style="margin-bottom: 4px;">MV OCEAN STAR</h3>
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 1.5rem;">IMO 9654321 • MMSI 419801234</div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <span class="text-secondary font-mono" style="font-size: 0.8rem;">Attribution Confidence</span>
+                        <span class="text-red font-mono" style="font-size: 1.25rem; font-weight: 700;">94%</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill"></div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <div class="detail-row">
+                            <span class="text-secondary">Vessel Type</span>
+                            <span>Chemical Tanker</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="text-secondary">Flag State</span>
+                            <span>Panama</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="text-secondary">Last Position</span>
+                            <span class="font-mono">19°31'N 72°48'E</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="text-secondary">Distance from Spill</span>
+                            <span class="font-mono">3.2 nm from spill</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="text-secondary">Time Correlation</span>
+                            <span>Within 2h window</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="text-secondary">Trajectory Match</span>
+                            <span class="font-mono">94.1% path overlap</span>
+                        </div>
+                    </div>
+
+                    <div class="text-secondary font-mono" style="font-size: 0.8rem; margin-bottom: 0.5rem; letter-spacing: 1px;">SCORE COMPONENTS</div>
+                    <div class="score-bar-container">
+                        <div class="score-label">Spatial proximity</div>
+                        <div class="score-bar"><div class="score-fill" style="width: 92%"></div></div>
+                        <div class="score-value">92</div>
+                    </div>
+                    <div class="score-bar-container">
+                        <div class="score-label">Temporal window</div>
+                        <div class="score-bar"><div class="score-fill" style="width: 88%"></div></div>
+                        <div class="score-value">88</div>
+                    </div>
+                    <div class="score-bar-container">
+                        <div class="score-label">AIS trajectory</div>
+                        <div class="score-bar"><div class="score-fill" style="width: 98%"></div></div>
+                        <div class="score-value">98</div>
+                    </div>
+                    <div class="score-bar-container">
+                        <div class="score-label">Vessel class</div>
+                        <div class="score-bar"><div class="score-fill" style="width: 96%"></div></div>
+                        <div class="score-value">96</div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section" style="margin-bottom: 0.75rem; padding: 1.25rem;">
+                    <div class="grid-2" style="margin-bottom: 1rem;">
+                        <button class="btn btn-primary" style="padding: 0.5rem; background: var(--accent-red); box-shadow: none;">View AIS Trajectory</button>
+                        <button class="btn btn-outline" style="padding: 0.5rem;">Export Report</button>
+                    </div>
+                    <div class="grid-2">
+                        <button class="btn btn-outline" style="padding: 0.5rem; font-size: 0.8rem;" onclick="window.location.href='index.html'">Add Another</button>
+                        <button class="btn btn-danger" style="padding: 0.5rem; font-size: 0.8rem;" onclick="window.location.href='index.html'">Remove Image</button>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <button class="btn btn-ghost" style="padding: 0.5rem;" onclick="window.location.href='index.html'">&larr; Dashboard</button>
+                    <button class="btn btn-ghost" style="padding: 0.5rem;" onclick="window.location.href='analysis.html'">&larr; Back to Analysis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/app.js"></script>
+</body>
+</html>
