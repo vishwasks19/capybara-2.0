@@ -1,0 +1,13 @@
+{
+  "name": "oil-spill-attribution-backend",
+  "version": "1.0.0",
+  "description": "AIS-based vessel attribution service for the oil spill detection app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "csv-parser": "^3.0.0"
+  }
+}
