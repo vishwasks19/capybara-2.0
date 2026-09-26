@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OILTRACE - Analysis</title>
+    <title>CrudeControl - Analysis</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .analysis-layout {
@@ -30,7 +30,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(14, 22, 32, 0.8);
+            background: rgba(18, 24, 34, 0.85);
             backdrop-filter: blur(8px);
             position: absolute;
             top: 0;
@@ -42,10 +42,10 @@
         .map-canvas {
             flex-grow: 1;
             background-image: 
-                linear-gradient(rgba(30, 45, 61, 0.4) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(30, 45, 61, 0.4) 1px, transparent 1px);
+                linear-gradient(rgba(36, 51, 70, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(36, 51, 70, 0.4) 1px, transparent 1px);
             background-size: 50px 50px;
-            background-color: #0b141e;
+            background-color: #0b1118;
             position: relative;
         }
         
@@ -62,11 +62,13 @@
             border-radius: var(--radius-sm);
             font-size: 0.8rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
         .map-btn.active {
-            background: var(--accent-blue-dim);
-            color: var(--accent-blue);
-            border-color: rgba(0, 168, 255, 0.3);
+            background: var(--accent-yellow-dim);
+            color: var(--accent-yellow-light);
+            border-color: rgba(245, 158, 11, 0.5);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
         }
         
         .sidebar-section {
@@ -152,7 +154,7 @@
                 <line x1="2" y1="12" x2="4" y2="12"></line>
                 <line x1="20" y1="12" x2="22" y2="12"></line>
             </svg>
-            <span class="logo-text">OILTRACE</span>
+            <span class="logo-text">CrudeControl</span>
         </div>
         <nav>
             <a href="index.html">Dashboard</a>
@@ -165,7 +167,7 @@
     <div class="container" style="padding-top: 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div class="text-secondary font-mono" style="font-size: 0.85rem;">
-                Dashboard / <span class="text-blue">Detection Results</span>
+                Dashboard / <span class="text-yellow">Detection Results</span>
             </div>
             <div class="badge badge-red" style="font-size: 0.85rem;">
                 ⚠ OIL SPILL DETECTED
@@ -236,7 +238,7 @@
                     
                     <div class="detail-row">
                         <span class="text-secondary">Spill Area</span>
-                        <span class="text-blue font-mono">12.4 km²</span>
+                        <span class="text-yellow font-mono">12.4 km²</span>
                     </div>
                     <div class="detail-row">
                         <span class="text-secondary">Severity</span>

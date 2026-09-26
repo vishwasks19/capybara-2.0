@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OILTRACE - Vessel Attribution</title>
+    <title>CrudeControl - Vessel Attribution</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .analysis-layout {
@@ -30,7 +30,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(14, 22, 32, 0.8);
+            background: rgba(18, 24, 34, 0.85);
             backdrop-filter: blur(8px);
             position: absolute;
             top: 0;
@@ -42,10 +42,10 @@
         .map-canvas {
             flex-grow: 1;
             background-image: 
-                linear-gradient(rgba(30, 45, 61, 0.4) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(30, 45, 61, 0.4) 1px, transparent 1px);
+                linear-gradient(rgba(36, 51, 70, 0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(36, 51, 70, 0.4) 1px, transparent 1px);
             background-size: 50px 50px;
-            background-color: #0b141e;
+            background-color: #0b1118;
             position: relative;
         }
         
@@ -167,7 +167,7 @@
                 <line x1="2" y1="12" x2="4" y2="12"></line>
                 <line x1="20" y1="12" x2="22" y2="12"></line>
             </svg>
-            <span class="logo-text">OILTRACE</span>
+            <span class="logo-text">CrudeControl</span>
         </div>
         <nav>
             <a href="index.html">Dashboard</a>
@@ -180,9 +180,9 @@
     <div class="container" style="padding-top: 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div class="text-secondary font-mono" style="font-size: 0.85rem;">
-                Dashboard / Detection Results / <span class="text-blue">Vessel Attribution</span>
+                Dashboard / Detection Results / <span class="text-yellow">Vessel Attribution</span>
             </div>
-            <div class="text-blue font-mono" style="font-size: 0.85rem;">
+            <div class="text-yellow font-mono" style="font-size: 0.85rem;">
                 3 vessels analysed • 94% top match
             </div>
         </div>
@@ -357,7 +357,7 @@
                 
                 <div class="sidebar-section" style="margin-bottom: 0.75rem; padding: 1.25rem;">
                     <div class="grid-2" style="margin-bottom: 1rem;">
-                        <button class="btn btn-primary" style="padding: 0.5rem; background: var(--accent-red); box-shadow: none;">View AIS Trajectory</button>
+                        <button class="btn btn-primary" style="padding: 0.5rem;">View AIS Trajectory</button>
                         <button class="btn btn-outline" style="padding: 0.5rem;">Export Report</button>
                     </div>
                     <div class="grid-2">

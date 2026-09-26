@@ -1,1 +1,1 @@
-rootProject.name = "oiltrace"
+rootProject.name = "crudecontrol"
