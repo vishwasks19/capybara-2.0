@@ -1,210 +1,555 @@
-import sys
 import os
 import base64
+import io
 
 import cv2
 import numpy as np
 import torch
-import segmentation_models_pytorch as smp
+import torch.nn.functional as F
 
-from fastapi import FastAPI, UploadFile, File
+from PIL import Image
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from transformers import SegformerForSemanticSegmentation
 
 
-# --------------------------------------------------
-# Paths
-# --------------------------------------------------
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_NAME = "nvidia/segformer-b1-finetuned-ade-512-512"
 
-CHECKPOINT_PATH = os.path.join(
-    BASE_DIR,
-    "checkpoints",
-    "best_model.pth"
+CHECKPOINT_PATH = (
+    r"C:\Users\DELL\Downloads\capybara 2.0"
+    r"\checkpoints\best_segformer_oil_spill.pth"
+)
+
+IMG_SIZE = 256
+
+# Your model has:
+# Class 0 -> Background
+# Class 1 -> Oil Spill
+NUM_CLASSES = 2
+OIL_CLASS = 1
+
+# Pixel-level segmentation threshold
+THRESHOLD = 0.5
+
+# Minimum percentage of the image that must be
+# classified as oil spill before we report detection.
+DETECTION_PERCENTAGE = 0.5
+
+
+# ============================================================
+# DEVICE
+# ============================================================
+
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 
-# --------------------------------------------------
-# FastAPI app
-# --------------------------------------------------
+# ============================================================
+# FASTAPI APPLICATION
+# ============================================================
 
-app = FastAPI()
+app = FastAPI(
+    title="CrudeControl Oil Spill Detection API",
+    description="SegFormer-based oil spill segmentation and detection API",
+    version="1.0.0"
+)
 
+
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# --------------------------------------------------
-# Device
-# --------------------------------------------------
+# ============================================================
+# LOAD MODEL
+# ============================================================
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print()
+print("==========================================")
+print("     CRUDECONTROL MODEL INITIALIZATION")
+print("==========================================")
+print(f"Device: {DEVICE}")
+print(f"Checkpoint: {CHECKPOINT_PATH}")
+print()
 
-IMG_SIZE = 256
+if not os.path.exists(CHECKPOINT_PATH):
+    raise FileNotFoundError(
+        f"Checkpoint not found:\n{CHECKPOINT_PATH}"
+    )
 
 
-# --------------------------------------------------
-# Load model ONCE when server starts
-# --------------------------------------------------
+print("Creating SegFormer B1 model...")
 
-model = smp.Unet(
-    encoder_name="resnet34",
-    encoder_weights=None,
-    in_channels=3,
-    classes=1,
-    activation=None,
+model = SegformerForSemanticSegmentation.from_pretrained(
+    MODEL_NAME,
+    num_labels=NUM_CLASSES,
+    ignore_mismatched_sizes=True
 )
 
-state_dict = torch.load(
+print("Base model created.")
+print("Loading trained checkpoint...")
+
+
+# ------------------------------------------------------------
+# Load checkpoint
+# ------------------------------------------------------------
+
+checkpoint = torch.load(
     CHECKPOINT_PATH,
     map_location=DEVICE
 )
 
-model.load_state_dict(state_dict)
 
-model = model.to(DEVICE)
+# Some checkpoints are stored as:
+# {
+#     "state_dict": {...}
+# }
+#
+# Your checkpoint is a direct state_dict, but this
+# makes the backend compatible with either format.
+
+if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
+    state_dict = checkpoint["state_dict"]
+else:
+    state_dict = checkpoint
+
+
+# ------------------------------------------------------------
+# Remove DataParallel prefix if present
+# ------------------------------------------------------------
+
+state_dict = {
+    key.replace("module.", "", 1): value
+    for key, value in state_dict.items()
+}
+
+
+# ------------------------------------------------------------
+# Load trained weights
+# ------------------------------------------------------------
+
+model.load_state_dict(
+    state_dict,
+    strict=True
+)
+
+
+# ------------------------------------------------------------
+# Move model to device
+# ------------------------------------------------------------
+
+model.to(DEVICE)
+
 model.eval()
 
 
-print("Model loaded successfully!")
-print("Checkpoint:", CHECKPOINT_PATH)
-print("Device:", DEVICE)
+print()
+print("==========================================")
+print("       MODEL LOADED SUCCESSFULLY")
+print("==========================================")
+print(f"Model: SegFormer B1")
+print(f"Classes: {NUM_CLASSES}")
+print(f"Oil class: {OIL_CLASS}")
+print(f"Input resolution: {IMG_SIZE}x{IMG_SIZE}")
+print(f"Segmentation threshold: {THRESHOLD}")
+print(f"Detection percentage: {DETECTION_PERCENTAGE}%")
+print(f"Device: {DEVICE}")
+print("==========================================")
+print()
 
 
-# --------------------------------------------------
-# Health check
-# --------------------------------------------------
+# ============================================================
+# IMAGE NORMALIZATION
+# ============================================================
 
-@app.get("/")
-def home():
-    return {
-        "message": "FastAPI is working!"
-    }
+# Same ImageNet normalization used during training.
+
+IMAGE_MEAN = np.array(
+    [0.485, 0.456, 0.406],
+    dtype=np.float32
+)
+
+IMAGE_STD = np.array(
+    [0.229, 0.224, 0.225],
+    dtype=np.float32
+)
 
 
-# --------------------------------------------------
-# Prediction endpoint
-# --------------------------------------------------
+# ============================================================
+# IMAGE PREPROCESSING
+# ============================================================
 
-@app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+def preprocess_image(image: Image.Image):
 
-    # Read uploaded image
-    image_bytes = await file.read()
+    # Save original dimensions
+    original_width, original_height = image.size
 
-    image_array = np.frombuffer(image_bytes, np.uint8)
-    image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    # Ensure RGB
+    image = image.convert("RGB")
 
-    if image is None:
-        return {
-            "error": "Invalid image file"
-        }
-
-    # Keep original dimensions
-    original_height, original_width = image.shape[:2]
-
-    # Convert BGR -> RGB
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Resize to model input size
-    resized = cv2.resize(
-        image_rgb,
-        (IMG_SIZE, IMG_SIZE)
+    # Resize to training resolution
+    image_resized = image.resize(
+        (IMG_SIZE, IMG_SIZE),
+        Image.Resampling.BILINEAR
     )
 
-    # Normalize exactly like the training script
-    resized = resized.astype(np.float32) / 255.0
-
-    mean = np.array(
-        [0.485, 0.456, 0.406],
+    # Convert to NumPy
+    image_array = np.asarray(
+        image_resized,
         dtype=np.float32
     )
 
-    std = np.array(
-        [0.229, 0.224, 0.225],
-        dtype=np.float32
-    )
+    # Scale from [0, 255] -> [0, 1]
+    image_array = image_array / 255.0
 
-    resized = (resized - mean) / std
+    # ImageNet normalization
+    image_array = (
+        image_array - IMAGE_MEAN
+    ) / IMAGE_STD
 
     # HWC -> CHW
-    tensor = torch.tensor(
-        resized,
-        dtype=torch.float32
-    ).permute(2, 0, 1)
+    image_array = np.transpose(
+        image_array,
+        (2, 0, 1)
+    )
+
+    # NumPy -> PyTorch
+    tensor = torch.from_numpy(
+        image_array
+    ).float()
 
     # Add batch dimension
-    tensor = tensor.unsqueeze(0).to(DEVICE)
+    tensor = tensor.unsqueeze(0)
 
-    # Run model
-    with torch.no_grad():
-        logits = model(tensor)
+    # Move to CPU/GPU
+    tensor = tensor.to(DEVICE)
 
-        probabilities = torch.sigmoid(logits)
+    return (
+        tensor,
+        original_width,
+        original_height
+    )
 
-        probability_mask = probabilities[
-            0, 0
-        ].cpu().numpy()
 
-    # Convert probability -> binary mask
-    binary_mask = (
-        probability_mask > 0.5
-    ).astype(np.uint8) * 255
+# ============================================================
+# OIL SPILL PREDICTION
+# ============================================================
 
-    # Resize mask back to original image size
-    binary_mask = cv2.resize(
-        binary_mask,
-        (original_width, original_height),
+@torch.no_grad()
+def predict(image: Image.Image):
+
+    # --------------------------------------------------------
+    # Preprocess
+    # --------------------------------------------------------
+
+    tensor, original_width, original_height = preprocess_image(
+        image
+    )
+
+    # --------------------------------------------------------
+    # Model inference
+    # --------------------------------------------------------
+
+    outputs = model(
+        pixel_values=tensor
+    )
+
+    logits = outputs.logits
+
+    # --------------------------------------------------------
+    # Resize logits to input resolution
+    # --------------------------------------------------------
+
+    logits = F.interpolate(
+        logits,
+        size=(IMG_SIZE, IMG_SIZE),
+        mode="bilinear",
+        align_corners=False
+    )
+
+    # --------------------------------------------------------
+    # Convert logits to probabilities
+    # --------------------------------------------------------
+
+    probabilities = F.softmax(
+        logits,
+        dim=1
+    )
+
+    # --------------------------------------------------------
+    # Extract oil-spill probability
+    #
+    # Class 0 = Background
+    # Class 1 = Oil Spill
+    # --------------------------------------------------------
+
+    oil_probability = probabilities[
+        0,
+        OIL_CLASS
+    ]
+
+    # --------------------------------------------------------
+    # Apply segmentation threshold
+    # --------------------------------------------------------
+
+    mask = (
+        oil_probability >= THRESHOLD
+    ).cpu().numpy().astype(np.uint8)
+
+    # --------------------------------------------------------
+    # Resize mask back to original image dimensions
+    # --------------------------------------------------------
+
+    mask_original = cv2.resize(
+        mask,
+        (
+            original_width,
+            original_height
+        ),
         interpolation=cv2.INTER_NEAREST
     )
 
-    # --------------------------------------------------
-    # Create overlay
-    # --------------------------------------------------
+    # --------------------------------------------------------
+    # Calculate oil spill percentage
+    # --------------------------------------------------------
 
-    overlay = image.copy()
+    oil_pixels = int(
+        np.sum(mask_original == 1)
+    )
 
-    # Red color for predicted oil spill
-    overlay[binary_mask > 0] = (0, 0, 255)
+    total_pixels = int(
+        mask_original.size
+    )
 
-    blended = cv2.addWeighted(
-        image,
-        0.7,
-        overlay,
-        0.3,
+    oil_percentage = (
+        oil_pixels / total_pixels
+    ) * 100.0
+
+    # Explicit Python float
+    oil_percentage = float(
+        oil_percentage
+    )
+
+    return (
+        mask_original,
+        oil_percentage
+    )
+
+
+# ============================================================
+# CONVERT IMAGE TO BASE64
+# ============================================================
+
+def image_to_base64(image: Image.Image):
+
+    buffer = io.BytesIO()
+
+    image.save(
+        buffer,
+        format="PNG"
+    )
+
+    encoded = base64.b64encode(
+        buffer.getvalue()
+    ).decode("utf-8")
+
+    return encoded
+
+
+# ============================================================
+# ROOT ENDPOINT
+# ============================================================
+
+@app.get("/")
+def root():
+
+    return {
+        "status": "online",
+        "service": "CrudeControl Oil Spill Detection API",
+        "model": "SegFormer B1",
+        "classes": NUM_CLASSES,
+        "oil_class": OIL_CLASS,
+        "device": str(DEVICE)
+    }
+
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+@app.get("/health")
+def health():
+
+    return {
+        "status": "healthy",
+        "model_loaded": True,
+        "model": "SegFormer B1",
+        "device": str(DEVICE)
+    }
+
+
+# ============================================================
+# PREDICTION ENDPOINT
+# ============================================================
+
+@app.post("/predict")
+async def predict_image(
+    file: UploadFile = File(...)
+):
+
+    # --------------------------------------------------------
+    # Read uploaded file
+    # --------------------------------------------------------
+
+    contents = await file.read()
+
+    if not contents:
+        return {
+            "error": "Uploaded file is empty."
+        }
+
+    # --------------------------------------------------------
+    # Open image
+    # --------------------------------------------------------
+
+    try:
+
+        image = Image.open(
+            io.BytesIO(contents)
+        ).convert("RGB")
+
+    except Exception:
+
+        return {
+            "error": "The uploaded file is not a valid image."
+        }
+
+    # --------------------------------------------------------
+    # Run model
+    # --------------------------------------------------------
+
+    mask, oil_percentage = predict(
+        image
+    )
+
+    # ========================================================
+    # CREATE MASK IMAGE
+    # ========================================================
+
+    mask_image = Image.fromarray(
+        (
+            mask * 255
+        ).astype(np.uint8)
+    )
+
+
+    # ========================================================
+    # CREATE OVERLAY
+    # ========================================================
+
+    original = np.array(
+        image
+    ).copy()
+
+    overlay = original.copy()
+
+    # Find oil-spill pixels
+    oil_region = mask == 1
+
+    # Mark detected oil as red
+    overlay[oil_region] = (
+        255,
+        0,
         0
     )
 
-    # --------------------------------------------------
-    # Convert outputs to base64
-    # --------------------------------------------------
-
-    _, mask_encoded = cv2.imencode(
-        ".png",
-        binary_mask
+    # Blend original image and detection overlay
+    blended = cv2.addWeighted(
+        original,
+        0.6,
+        overlay,
+        0.4,
+        0
     )
 
-    _, overlay_encoded = cv2.imencode(
-        ".png",
+    overlay_image = Image.fromarray(
         blended
     )
 
-    mask_base64 = base64.b64encode(
-        mask_encoded.tobytes()
-    ).decode("utf-8")
 
-    overlay_base64 = base64.b64encode(
-        overlay_encoded.tobytes()
-    ).decode("utf-8")
+    # ========================================================
+    # DETECTION DECISION
+    # ========================================================
+
+    # IMPORTANT:
+    # Convert NumPy boolean to native Python bool.
+    #
+    # Without bool(), FastAPI can throw:
+    #
+    # TypeError: 'numpy.bool' object is not iterable
+    #
+    oil_detected = bool(
+        oil_percentage >= DETECTION_PERCENTAGE
+    )
+
+
+    # ========================================================
+    # RETURN RESPONSE
+    # ========================================================
 
     return {
         "filename": file.filename,
-        "mask": mask_base64,
-        "overlay": overlay_base64
+
+        "oil_spill_detected": oil_detected,
+
+        "oil_spill_percentage": float(
+            round(
+                oil_percentage,
+                2
+            )
+        ),
+
+        "segmentation_threshold": float(
+            THRESHOLD
+        ),
+
+        "detection_percentage_threshold": float(
+            DETECTION_PERCENTAGE
+        ),
+
+        "mask": image_to_base64(
+            mask_image
+        ),
+
+        "overlay": image_to_base64(
+            overlay_image
+        )
     }
+
+
+# ============================================================
+# RUN DIRECTLY
+# ============================================================
+
+if __name__ == "__main__":
+
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000
+    )
