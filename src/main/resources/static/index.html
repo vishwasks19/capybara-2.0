@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrudeControl - Dashboard</title>
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script defer src="/__/firebase/10.7.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.7.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.7.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="js/auth.js"></script>
 </head>
 <body>
     <header>
@@ -19,9 +26,11 @@
             </svg>
             <span class="logo-text">CrudeControl</span>
         </div>
-        <nav>
+        <nav style="display: flex; align-items: center;">
+            <span id="user-greeting" class="text-secondary font-mono" style="margin-right: 1rem; font-size: 0.85rem;"></span>
             <a href="index.html" class="active">Dashboard</a>
             <a href="about.html">About</a>
+            <button id="logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-left: 1rem; cursor: pointer;">Logout</button>
         </nav>
     </header>
 
@@ -104,7 +113,8 @@
                         SAR IMAGE UPLOAD
                     </div>
                     
-                    <div class="upload-area" id="drop-zone">
+                    <div class="upload-area" id="drop-zone" style="cursor: pointer;" onclick="document.getElementById('image-upload').click()">
+                        <input type="file" id="image-upload" accept="image/png, image/jpeg, image/tiff" style="display: none;">
                         <div class="upload-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -130,7 +140,7 @@
                         </div>
                     </div>
                     
-                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" onclick="window.location.href='analysis.html'">Analyze Image</button>
+                    <button class="btn btn-primary" id="analyze-btn" style="width: 100%; margin-bottom: 1rem;" onclick="analyzeImage()">Analyze Image</button>
                     <div class="text-center text-secondary font-mono" style="font-size: 0.75rem;">Processing time approx. 45 seconds per 500MB scene</div>
                 </div>
                 

@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrudeControl - Analysis</title>
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script defer src="/__/firebase/10.7.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.7.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="js/auth.js"></script>
+
     <style>
         .analysis-layout {
             display: grid;
@@ -156,11 +163,13 @@
             </svg>
             <span class="logo-text">CrudeControl</span>
         </div>
-        <nav>
+        <nav style="display: flex; align-items: center;">
+            <span id="user-greeting" class="text-secondary font-mono" style="margin-right: 1rem; font-size: 0.85rem;"></span>
             <a href="index.html">Dashboard</a>
             <a href="analysis.html" class="active">Analysis</a>
             <a href="attribution.html">Vessel Attribution</a>
             <a href="about.html">About</a>
+            <button id="logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-left: 1rem; cursor: pointer;">Logout</button>
         </nav>
     </header>
 
@@ -188,33 +197,32 @@
                     </div>
                 </div>
                 <div class="map-canvas">
-                    <!-- Simulated Map Overlay Elements -->
-                    <div class="spill-zone"></div>
+                    <img id="analysis-image" src="" style="width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; z-index: 1;">
                     
-                    <div class="vessel-marker" style="top: 48%; left: 45%;">
+                    <div class="vessel-marker" style="top: 48%; left: 45%; z-index: 10;">
                         <div class="vessel-dot" style="background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red);"></div>
                         <div class="badge" style="background: rgba(14, 22, 32, 0.8);">MV OCEAN STAR</div>
                     </div>
                     
-                    <div class="vessel-marker" style="top: 35%; left: 60%;">
+                    <div class="vessel-marker" style="top: 35%; left: 60%; z-index: 10;">
                         <div class="vessel-dot" style="background: var(--accent-blue);"></div>
                         <div class="badge" style="background: rgba(14, 22, 32, 0.8);">SEA HORIZON</div>
                     </div>
                     
-                    <div class="vessel-marker" style="top: 65%; left: 35%;">
+                    <div class="vessel-marker" style="top: 65%; left: 35%; z-index: 10;">
                         <div class="vessel-dot" style="background: var(--accent-blue);"></div>
                         <div class="badge" style="background: rgba(14, 22, 32, 0.8);">BLUE MERIDIAN</div>
                     </div>
                     
-                    <div class="badge badge-red" style="position: absolute; top: 58%; left: 25%; background: rgba(255,59,59,0.1);">
+                    <div class="badge badge-red" style="position: absolute; top: 58%; left: 25%; background: rgba(255,59,59,0.1); z-index: 10;">
                         SPILL ZONE • 12.4 km²
                     </div>
                     
-                    <div class="font-mono text-secondary" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 0.75rem;">
+                    <div class="font-mono text-secondary" style="position: absolute; bottom: 1rem; left: 1rem; font-size: 0.75rem; z-index: 10;">
                         LAT: 19°24'18.6"N<br>
                         LON: 72°52'44.1"E
                     </div>
-                    <div class="font-mono text-secondary" style="position: absolute; bottom: 1rem; right: 1rem; font-size: 0.75rem; border-top: 1px solid var(--text-secondary); width: 60px; text-align: right; padding-top: 4px;">
+                    <div class="font-mono text-secondary" style="position: absolute; bottom: 1rem; right: 1rem; font-size: 0.75rem; border-top: 1px solid var(--text-secondary); width: 60px; text-align: right; padding-top: 4px; z-index: 10;">
                         10 km
                     </div>
                 </div>

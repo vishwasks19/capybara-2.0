@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
+import segmentation_models_pytorch as smp
+import uvicorn
 
 from PIL import Image
 from fastapi import FastAPI, File, UploadFile
@@ -19,10 +21,7 @@ from transformers import SegformerForSemanticSegmentation
 
 MODEL_NAME = "nvidia/segformer-b1-finetuned-ade-512-512"
 
-CHECKPOINT_PATH = (
-    r"C:\Users\DELL\Downloads\capybara 2.0"
-    r"\checkpoints\best_segformer_oil_spill.pth"
-)
+CHECKPOINT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "checkpoints", "best_segformer_oil_spill.pth")
 
 IMG_SIZE = 256
 
@@ -96,6 +95,8 @@ print("Creating SegFormer B1 model...")
 model = SegformerForSemanticSegmentation.from_pretrained(
     MODEL_NAME,
     num_labels=NUM_CLASSES,
+    id2label={0: "Background", 1: "Oil Spill"},
+    label2id={"Background": 0, "Oil Spill": 1},
     ignore_mismatched_sizes=True
 )
 
@@ -143,7 +144,7 @@ state_dict = {
 
 model.load_state_dict(
     state_dict,
-    strict=True
+    strict=False
 )
 
 
@@ -512,7 +513,6 @@ async def predict_image(
 
     return {
         "filename": file.filename,
-
         "oil_spill_detected": oil_detected,
 
         "oil_spill_percentage": float(

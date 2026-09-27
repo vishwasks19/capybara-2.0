@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Rules for the usernames mapping collection
+    match /usernames/{username} {
+      // Anyone can read a specific username to log in
+      allow read: if true;
+      
+      // Anyone can create a new username if it doesn't already exist
+      // (This prevents people from overwriting someone else's username)
+      allow create: if !exists(/databases/$(database)/documents/usernames/$(username));
+      
+      // No one is allowed to modify or delete existing usernames
+      allow update, delete: if false;
+    }
+  }
+}

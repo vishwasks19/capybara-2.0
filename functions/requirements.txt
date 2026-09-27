@@ -1,0 +1,10 @@
+firebase-functions>=0.2.0
+fastapi
+uvicorn
+torch
+torchvision
+opencv-python-headless
+numpy
+pillow
+transformers
+python-multipart

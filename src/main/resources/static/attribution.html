@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CrudeControl - Vessel Attribution</title>
+    <title>OILTRACE - Attribution</title>
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script defer src="/__/firebase/10.7.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.7.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="js/auth.js"></script>
     <style>
         .analysis-layout {
             display: grid;
@@ -169,11 +175,13 @@
             </svg>
             <span class="logo-text">CrudeControl</span>
         </div>
-        <nav>
+        <nav style="display: flex; align-items: center;">
+            <span id="user-greeting" class="text-secondary font-mono" style="margin-right: 1rem; font-size: 0.85rem;"></span>
             <a href="index.html">Dashboard</a>
             <a href="analysis.html">Analysis</a>
             <a href="attribution.html" class="active">Vessel Attribution</a>
             <a href="about.html">About</a>
+            <button id="logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-left: 1rem; cursor: pointer;">Logout</button>
         </nav>
     </header>
 
@@ -202,13 +210,13 @@
                     </div>
                 </div>
                 <div class="map-canvas">
-                    <div class="spill-zone"></div>
+                    <img id="analysis-image" src="" style="width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; z-index: 1;">
                     <div class="text-red font-mono" style="position: absolute; top: 58%; left: 30%; transform: translateX(-50%); z-index: 6;">
                         SPILL • 12.4 km²
                     </div>
 
                     <!-- SVG Overlay for Trajectories -->
-                    <svg class="map-svg" viewBox="0 0 800 600">
+                    <svg class="map-svg" viewBox="0 0 800 600" style="z-index: 10;">
                         <!-- Yellow Trajectory -->
                         <path d="M 600 600 Q 550 400 400 200" class="trajectory-path trajectory-yellow" />
                         <g transform="translate(400, 200) rotate(-45)">

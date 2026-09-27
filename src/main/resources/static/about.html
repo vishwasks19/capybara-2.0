@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrudeControl - About</title>
     <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script defer src="/__/firebase/10.7.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.7.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="js/auth.js"></script>
     <style>
         .about-grid {
             display: grid;
@@ -91,9 +97,11 @@
             </svg>
             <span class="logo-text">CrudeControl</span>
         </div>
-        <nav>
+        <nav style="display: flex; align-items: center;">
+            <span id="user-greeting" class="text-secondary font-mono" style="margin-right: 1rem; font-size: 0.85rem;"></span>
             <a href="index.html">Dashboard</a>
             <a href="about.html" class="active">About</a>
+            <button id="logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin-left: 1rem; cursor: pointer;">Logout</button>
         </nav>
     </header>
 
