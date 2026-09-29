@@ -3,286 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OILTRACE - Authentication</title>
-    
+    <title>CrudeControl - Sign in</title>
+
     <!-- Firebase SDK (Compat Version) -->
     <script defer src="/__/firebase/10.7.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.7.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.7.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
-    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --bg-color: #05080f;
-            --card-bg: #0b111a;
-            --input-bg: #06090e;
-            --border-color: #1a2332;
-            --text-main: #ffffff;
-            --text-muted: #6b7a90;
-            --accent-blue: #007bff;
+            --bg: #080c14;
+            --panel: #0f1523;
+            --panel-2: #141c2e;
+            --input-bg: #0a0f1a;
+            --border: #1e293b;
+            --text: #ffffff;
+            --muted: #8a98b0;
+            --amber: #fbb824;
+            --amber-deep: #f0900f;
+            --danger: #ff6b6b;
+            --mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+            --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Topographic background simulation using radial gradients */
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(0, 123, 255, 0.03) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(0, 123, 255, 0.03) 0%, transparent 50%);
+            font-family: var(--sans);
+            background:
+                radial-gradient(ellipse 60% 50% at 50% 0%, rgba(251, 184, 36, 0.08), transparent 70%),
+                var(--bg);
+            color: var(--text);
         }
-        
+
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
         .split-layout {
-            display: flex;
-            gap: 2rem;
-            max-width: 1100px;
-            width: 90%;
-            height: 650px;
-            align-items: stretch;
-        }
-
-        /* Left Side: Map Image Container */
-        .map-container {
-            flex: 1;
-            background-image: url('images/login-bg.jpg');
-            background-size: cover;
-            background-position: center;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             position: relative;
-            overflow: hidden;
+            z-index: 1;
+            width: 92%;
+            max-width: 440px;
+            padding: 2rem 0;
         }
 
-        /* Right Side: Auth Form Container */
+        /* ---------- Right: auth card ---------- */
         .auth-card {
-            flex: 1;
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2.5rem 2.25rem;
             display: flex;
             flex-direction: column;
-            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
         }
 
-        .auth-header {
-            text-align: center;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             margin-bottom: 2rem;
         }
-
-        .logo-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            color: #3b82f6;
-        }
-
-        .logo-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: 4px;
-        }
-
-        .tagline {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            margin-top: 0.25rem;
-        }
-        .tagline span { color: #3b82f6; }
-
-        .auth-title {
-            font-size: 1.5rem;
+        .brand svg { width: 30px; height: 30px; color: var(--amber); flex-shrink: 0; }
+        .brand-name {
+            font-family: var(--mono);
+            font-size: 1.35rem;
             font-weight: 600;
-            margin: 0 0 0.5rem 0;
+            letter-spacing: 0.06em;
         }
 
-        .auth-subtitle {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin: 0;
-        }
+        .auth-title { font-size: 1.6rem; font-weight: 700; margin: 0 0 0.4rem; }
+        .auth-subtitle { color: var(--muted); font-size: 0.92rem; margin: 0 0 1.75rem; }
 
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
+        .form-group { margin-bottom: 1.1rem; }
         .form-group label {
             display: block;
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            margin-bottom: 0.5rem;
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-bottom: 0.45rem;
         }
 
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
+        .input-wrapper { position: relative; display: flex; align-items: center; }
         .input-icon {
             position: absolute;
-            left: 1rem;
+            left: 0.95rem;
             width: 16px;
             height: 16px;
-            color: var(--text-muted);
+            color: var(--muted);
+            pointer-events: none;
         }
 
         .form-group input {
             width: 100%;
             background: var(--input-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            color: var(--text-main);
-            padding: 0.85rem 1rem 0.85rem 2.75rem;
-            font-size: 0.9rem;
-            font-family: inherit;
-            transition: all 0.2s;
-            box-sizing: border-box;
+            color: var(--text);
+            padding: 0.85rem 1rem 0.85rem 2.6rem;
+            font-family: var(--mono);
+            font-size: 0.88rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-
+        .form-group input::placeholder { color: #55637b; }
         .form-group input:focus {
             outline: none;
-            border-color: #3b82f6;
+            border-color: var(--amber);
+            box-shadow: 0 0 0 3px rgba(251, 184, 36, 0.15);
         }
 
         .btn-submit {
-            background: #1877f2;
-            color: #ffffff;
             width: 100%;
-            padding: 0.85rem;
+            margin-top: 0.5rem;
+            padding: 0.9rem;
             border: none;
             border-radius: 8px;
+            font-family: var(--sans);
             font-size: 0.95rem;
-            font-weight: 600;
+            font-weight: 700;
+            color: #111827;
             cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 0.5rem;
+            background: linear-gradient(90deg, var(--amber), var(--amber-deep));
+            box-shadow: 0 6px 20px rgba(240, 144, 15, 0.22);
+            transition: filter 0.2s, transform 0.1s;
         }
-
-        .btn-submit:hover {
-            background: #1664c9;
-        }
+        .btn-submit:hover { filter: brightness(1.08); }
+        .btn-submit:active { transform: translateY(1px); }
+        .btn-submit:focus-visible,
+        .btn-google:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
         .divider {
             display: flex;
             align-items: center;
-            text-align: center;
-            color: var(--text-muted);
+            color: var(--muted);
             font-size: 0.8rem;
-            margin: 1.5rem 0;
+            margin: 1.4rem 0;
         }
-
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--border); }
         .divider::before { margin-right: 1em; }
         .divider::after { margin-left: 1em; }
 
         .btn-google {
-            background: transparent;
-            color: var(--text-main);
             width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            font-weight: 500;
-            font-size: 0.9rem;
+            gap: 10px;
             padding: 0.85rem;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            border: 1px solid var(--border-color);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.2s;
-            position: relative;
+            transition: border-color 0.2s, background 0.2s;
         }
-
-        .btn-google:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        
-        .google-shield {
-            color: #3b82f6;
-            width: 16px;
-            height: 16px;
-        }
-
-        .google-logo {
-            position: absolute;
-            right: 1.25rem;
-        }
+        .btn-google:hover { border-color: var(--amber); background: #18223a; }
 
         .auth-switch {
             text-align: center;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 2rem;
+            font-size: 0.86rem;
+            color: var(--muted);
+            margin-top: 1.75rem;
         }
-
-        .auth-switch a {
-            color: #3b82f6;
-            text-decoration: none;
-            cursor: pointer;
-        }
+        .auth-switch a { color: var(--amber); cursor: pointer; text-decoration: none; font-weight: 600; }
         .auth-switch a:hover { text-decoration: underline; }
 
+        #auth-error {
+            display: none;
+            margin-top: 1.25rem;
+            padding: 0.7rem 0.9rem;
+            border: 1px solid rgba(255, 107, 107, 0.35);
+            background: rgba(255, 107, 107, 0.08);
+            border-radius: 8px;
+            color: var(--danger);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .text-red { color: var(--danger); }
+
         .hidden { display: none !important; }
-        
-        /* Mobile responsive */
-        @media (max-width: 850px) {
-            .split-layout { flex-direction: column; height: auto; }
-            .map-container { display: none; } /* Hide map on small screens */
-            .auth-card { padding: 2rem; }
+
+        @media (max-width: 480px) {
+            .auth-card { padding: 2rem 1.5rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="split-layout">
-        <!-- Left Side: Map -->
-        <div class="map-container"></div>
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
 
-        <!-- Right Side: Auth Form -->
+    <div class="split-layout">
+        <!-- Login panel -->
         <div class="auth-card">
-            
-            <div class="auth-header">
-                <div class="logo-wrap">
-                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <circle cx="12" cy="12" r="4"></circle>
-                        <circle cx="12" cy="12" r="1" fill="currentColor"></circle>
-                    </svg>
-                    <span class="logo-text">OILTRACE</span>
-                    <div class="tagline">Detect. <span>Track.</span> Attribute.</div>
-                </div>
+
+            <div class="brand">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <circle cx="12" cy="12" r="1" fill="currentColor"></circle>
+                </svg>
+                <span class="brand-name">CrudeControl</span>
             </div>
 
             <!-- LOGIN VIEW -->
             <div id="view-login">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 class="auth-title">Welcome back</h1>
-                    <p class="auth-subtitle">Sign in to continue to your dashboard</p>
-                </div>
+                <h1 class="auth-title">Welcome back</h1>
+                <p class="auth-subtitle">Sign in to continue to your dashboard</p>
 
                 <form id="form-login">
                     <div class="form-group">
-                        <label for="login-email">Email address or Username</label>
+                        <label for="login-email">Email address or username</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             <input type="text" id="login-email" placeholder="Enter your email or username" required>
@@ -295,21 +243,19 @@
                             <input type="password" id="login-password" placeholder="Enter your password" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-submit">Sign In</button>
+                    <button type="submit" class="btn-submit">Sign in</button>
                 </form>
 
                 <div class="divider">or</div>
 
-                <button class="btn-google btn-google-auth">
-                    <svg class="google-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    Sign in with Google
-                    <svg class="google-logo" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                <button type="button" class="btn-google btn-google-auth">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true">
                         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"></path>
                         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
                         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
                         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                        <path fill="none" d="M0 0h48v48H0z"></path>
                     </svg>
+                    Continue with Google
                 </button>
 
                 <div class="auth-switch">
@@ -319,10 +265,8 @@
 
             <!-- SIGNUP VIEW -->
             <div id="view-signup" class="hidden">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <h1 class="auth-title">Create account</h1>
-                    <p class="auth-subtitle">Sign up to get started</p>
-                </div>
+                <h1 class="auth-title">Create account</h1>
+                <p class="auth-subtitle">Sign up to start analysing SAR imagery</p>
 
                 <form id="form-signup">
                     <div class="form-group">
@@ -346,29 +290,27 @@
                             <input type="password" id="signup-password" placeholder="Create a password" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn-submit">Sign Up</button>
+                    <button type="submit" class="btn-submit">Create account</button>
                 </form>
 
                 <div class="divider">or</div>
 
-                <button class="btn-google btn-google-auth">
-                    <svg class="google-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    Sign in with Google
-                    <svg class="google-logo" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                <button type="button" class="btn-google btn-google-auth">
+                    <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true">
                         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"></path>
                         <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
                         <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
                         <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                        <path fill="none" d="M0 0h48v48H0z"></path>
                     </svg>
+                    Continue with Google
                 </button>
 
                 <div class="auth-switch">
-                    Already have an account? <a onclick="switchTab('login')">Sign In</a>
+                    Already have an account? <a onclick="switchTab('login')">Sign in</a>
                 </div>
             </div>
 
-            <div id="auth-error" class="text-red" style="margin-top: 1.5rem; font-size: 0.85rem; text-align: center; display: none;"></div>
+            <div id="auth-error" class="text-red" role="alert"></div>
         </div>
     </div>
 
@@ -379,8 +321,174 @@
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('view-signup').classList.add('hidden');
             document.getElementById('auth-error').style.display = 'none';
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById('view-' + tab).classList.remove('hidden');
         }
+    </script>
+
+    <!-- Background animation: satellite scan over oil slicks with AIS vessel match -->
+    <script>
+    (function () {
+        var cv = document.getElementById('bg-canvas');
+        var ctx = cv.getContext('2d');
+        var W, H, dpr;
+        var AMBER = '251,184,36';
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function resize() {
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+            W = window.innerWidth; H = window.innerHeight;
+            cv.width = W * dpr; cv.height = H * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', function () { resize(); if (reduce) draw(6); });
+        resize();
+
+        function slicks() {
+            var m = Math.min(W, H);
+            return [
+                { x: W * 0.24, y: H * 0.62, r: m * 0.13, ph: 0 },
+                { x: W * 0.78, y: H * 0.72, r: m * 0.08, ph: 2 }
+            ];
+        }
+
+        function blob(s, t, scale) {
+            ctx.beginPath();
+            for (var i = 0; i <= 72; i++) {
+                var a = i / 72 * Math.PI * 2;
+                var k = 1 + 0.14 * Math.sin(3 * a + t * 0.5 + s.ph)
+                          + 0.09 * Math.sin(5 * a - t * 0.35)
+                          + 0.05 * Math.sin(8 * a + t * 0.8);
+                var g = 1 + 0.06 * Math.sin(t * 0.3 + s.ph);
+                var rx = s.r * k * g * scale * 1.35, ry = s.r * k * g * scale * 0.8;
+                var px = s.x + Math.cos(a) * rx, py = s.y + Math.sin(a) * ry;
+                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+        }
+
+        function grid(t) {
+            ctx.strokeStyle = 'rgba(138,152,176,0.06)';
+            ctx.lineWidth = 1;
+            var step = 64, off = (t * 4) % step;
+            ctx.beginPath();
+            for (var x = -step + off; x < W + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+            for (var y = 0; y < H; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+            ctx.stroke();
+        }
+
+        function vessel(x, y, ang, alpha, hot) {
+            var tx = Math.cos(ang), ty = Math.sin(ang);
+            var g = ctx.createLinearGradient(x, y, x - tx * 90, y - ty * 90);
+            g.addColorStop(0, 'rgba(' + (hot ? AMBER : '138,152,176') + ',' + alpha * 0.6 + ')');
+            g.addColorStop(1, 'rgba(' + (hot ? AMBER : '138,152,176') + ',0)');
+            ctx.strokeStyle = g; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - tx * 90, y - ty * 90); ctx.stroke();
+            ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+            ctx.fillStyle = 'rgba(' + (hot ? AMBER : '200,210,225') + ',' + alpha + ')';
+            ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, 4); ctx.lineTo(-5, -4); ctx.closePath(); ctx.fill();
+            ctx.restore();
+        }
+
+        function draw(t) {
+            ctx.clearRect(0, 0, W, H);
+            grid(t);
+            var S = slicks();
+
+            // satellite position and ground footprint
+            var p = (t * 0.028) % 1;
+            var sx = -60 + (W + 120) * p;
+            var sy = H * 0.17 - Math.sin(p * Math.PI) * H * 0.07;
+            var gx = sx, gy = H * 0.66;
+
+            // orbit path
+            ctx.strokeStyle = 'rgba(' + AMBER + ',0.10)';
+            ctx.setLineDash([3, 7]); ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var i = 0; i <= 60; i++) {
+                var q = i / 60;
+                var ox = -60 + (W + 120) * q, oy = H * 0.17 - Math.sin(q * Math.PI) * H * 0.07;
+                if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+            }
+            ctx.stroke(); ctx.setLineDash([]);
+
+            // oil slicks
+            S.forEach(function (s) {
+                var k = Math.max(0, 1 - Math.abs(gx - s.x) / (s.r * 2.6));
+                var gr = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 1.6);
+                gr.addColorStop(0, 'rgba(' + AMBER + ',' + (0.16 + k * 0.14) + ')');
+                gr.addColorStop(1, 'rgba(' + AMBER + ',0)');
+                blob(s, t, 1); ctx.fillStyle = gr; ctx.fill();
+                ctx.strokeStyle = 'rgba(' + AMBER + ',' + (0.22 + k * 0.6) + ')';
+                ctx.lineWidth = 1 + k; ctx.stroke();
+                blob(s, t + 3, 0.62); ctx.strokeStyle = 'rgba(' + AMBER + ',0.10)'; ctx.lineWidth = 1; ctx.stroke();
+
+                // pulse rings from the slick
+                for (var n = 0; n < 2; n++) {
+                    var ph = ((t * 0.25 + n * 0.5 + s.ph) % 1);
+                    ctx.strokeStyle = 'rgba(' + AMBER + ',' + (0.18 * (1 - ph)) + ')';
+                    ctx.beginPath(); ctx.ellipse(s.x, s.y, s.r * (1 + ph * 1.4) * 1.35, s.r * (1 + ph * 1.4) * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
+                }
+
+                // detection brackets while scanned
+                if (k > 0.35) {
+                    var bw = s.r * 1.9, bh = s.r * 1.25, c = 14;
+                    ctx.strokeStyle = 'rgba(' + AMBER + ',' + k + ')'; ctx.lineWidth = 1.5;
+                    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function (d) {
+                        var cx = s.x + d[0] * bw, cy = s.y + d[1] * bh;
+                        ctx.beginPath(); ctx.moveTo(cx - d[0] * c, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy - d[1] * c); ctx.stroke();
+                    });
+                    ctx.fillStyle = 'rgba(' + AMBER + ',' + k + ')';
+                    ctx.font = '11px "JetBrains Mono", monospace';
+                    ctx.fillText('SPILL DETECTED', s.x - bw, s.y - bh - 10);
+                }
+            });
+
+            // background vessels
+            var v2x = W - ((t * 16) % (W + 200)) + 100, v2y = H * 0.86;
+            vessel(v2x, v2y, Math.PI, 0.55, false);
+            var v3x = ((t * 11) % (W + 200)) - 100, v3y = H * 0.44;
+            vessel(v3x, v3y, 0, 0.45, false);
+
+            // attributed vessel passing beside slick A
+            var A = S[0];
+            var vx = ((t * 22) % (W + 240)) - 120, vy = A.y + A.r * 1.35;
+            var near = Math.max(0, 1 - Math.abs(vx - A.x) / (A.r * 3));
+            if (near > 0) {
+                ctx.strokeStyle = 'rgba(' + AMBER + ',' + near * 0.7 + ')';
+                ctx.setLineDash([5, 5]); ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.moveTo(vx, vy); ctx.lineTo(A.x, A.y); ctx.stroke(); ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(' + AMBER + ',' + near + ')';
+                ctx.font = '11px "JetBrains Mono", monospace';
+                ctx.fillText('AIS MATCH', vx + 12, vy + 18);
+            }
+            vessel(vx, vy, 0, 0.9, near > 0.2);
+
+            // scan beam
+            var bg = ctx.createLinearGradient(sx, sy, gx, gy);
+            bg.addColorStop(0, 'rgba(' + AMBER + ',0.16)');
+            bg.addColorStop(1, 'rgba(' + AMBER + ',0.02)');
+            ctx.fillStyle = bg;
+            ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(gx - 70, gy); ctx.lineTo(gx + 70, gy); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(' + AMBER + ',0.30)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.ellipse(gx, gy, 70, 20, 0, 0, Math.PI * 2); ctx.stroke();
+
+            // satellite
+            ctx.save(); ctx.translate(sx, sy); ctx.rotate(-0.15);
+            ctx.fillStyle = 'rgba(' + AMBER + ',0.95)'; ctx.fillRect(-5, -5, 10, 10);
+            ctx.fillStyle = 'rgba(138,152,176,0.85)';
+            ctx.fillRect(-24, -3, 16, 6); ctx.fillRect(8, -3, 16, 6);
+            ctx.strokeStyle = 'rgba(10,15,26,0.9)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(-16, -3); ctx.lineTo(-16, 3); ctx.moveTo(16, -3); ctx.lineTo(16, 3); ctx.stroke();
+            ctx.restore();
+        }
+
+        if (reduce) { draw(6); return; }
+        var start = performance.now();
+        (function loop(now) {
+            draw((now - start) / 1000 + 6);
+            requestAnimationFrame(loop);
+        })(start);
+    })();
     </script>
 </body>
 </html>
