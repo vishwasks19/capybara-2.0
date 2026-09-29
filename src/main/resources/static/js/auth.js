@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // User is fully verified and logged in
                 if (window.location.pathname.includes('login.html')) {
-                    window.location.href = 'index.html';
+                    window.location.href = 'heropage.html';
                 }
             } else {
                 // Not logged in
