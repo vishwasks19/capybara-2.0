@@ -1,0 +1,3159 @@
+```html
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spill Attribution — Interactive Globe Preview</title>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+
+<style>
+  :root{
+    --deep:#050d13;
+    --text:#dbe7ec;
+    --muted:#86a1ad;
+    --alert:#f08a45;
+    --vector:#5cc9d4;
+  }
+
+  *{box-sizing:border-box}
+
+  html,body{
+    margin:0;
+    height:100%;
+    background:var(--deep);
+    font-family:-apple-system,"Segoe UI",Inter,sans-serif;
+    color:var(--text);
+    overflow:hidden
+  }
+
+  .stage{
+    position:relative;
+    width:100%;
+    height:100svh;
+    background:radial-gradient(
+      ellipse 60% 70% at 66% 50%,
+      #0d2431 0%,
+      #07131b 58%,
+      #04090e 100%
+    );
+  }
+
+  canvas#gl{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    touch-action:none;
+    cursor:grab;
+    opacity:0;
+    transition:opacity 1.4s ease;
+  }
+
+  canvas#gl.ready{
+    opacity:1;
+  }
+
+  canvas#gl.dragging{
+    cursor:grabbing;
+  }
+
+  .hero-copy{
+    position:absolute;
+    z-index:2;
+    top:0;
+    left:0;
+    width:44%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:flex-start;
+    padding:0 5vw;
+    pointer-events:none;
+  }
+
+  h1{
+    font-size:clamp(34px,3.8vw,54px);
+    line-height:1.08;
+    letter-spacing:-.02em;
+    font-weight:560;
+    margin:0 0 22px;
+    max-width:12ch;
+  }
+
+  h1 span{
+    color:var(--vector);
+  }
+
+  p.lede{
+    font-size:16.5px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:36ch;
+    margin:0 0 34px;
+  }
+
+  /* ---------- CTA ---------- */
+
+  .cta{
+    pointer-events:auto;
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:13px;
+    padding:16px 28px 16px 22px;
+    border:0;
+    border-radius:999px;
+    cursor:pointer;
+    font:600 15px/1 inherit;
+    font-family:inherit;
+    letter-spacing:.01em;
+    color:#1d1006;
+    background:linear-gradient(
+      135deg,
+      #ffbf85 0%,
+      #f39149 52%,
+      #e5672d 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255,235,210,.65),
+      inset 0 -2px 6px rgba(150,50,10,.28),
+      0 10px 30px -8px rgba(240,120,50,.7),
+      0 0 44px -10px rgba(245,140,70,.55);
+    overflow:hidden;
+    isolation:isolate;
+    transition:
+      transform .28s cubic-bezier(.2,.8,.2,1),
+      box-shadow .28s ease;
+  }
+
+  .cta::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    border-radius:inherit;
+    background:radial-gradient(
+      120% 140% at 20% 0%,
+      rgba(255,255,255,.35),
+      transparent 55%
+    );
+  }
+
+  .cta::after{
+    content:'';
+    position:absolute;
+    top:-10%;
+    left:-70%;
+    width:45%;
+    height:120%;
+    z-index:1;
+    background:linear-gradient(
+      100deg,
+      transparent,
+      rgba(255,255,255,.65),
+      transparent
+    );
+    transform:skewX(-22deg);
+    transition:left .8s cubic-bezier(.2,.7,.2,1);
+  }
+
+  .cta:hover{
+    transform:translateY(-2px) scale(1.025);
+    box-shadow:
+      inset 0 1px 0 rgba(255,240,220,.75),
+      inset 0 -2px 6px rgba(150,50,10,.28),
+      0 16px 40px -8px rgba(245,125,55,.85),
+      0 0 64px -8px rgba(250,150,80,.7);
+  }
+
+  .cta:hover::after{
+    left:130%;
+  }
+
+  .cta:active{
+    transform:translateY(0) scale(.985);
+  }
+
+  .cta:focus-visible{
+    outline:2px solid #ffd2a8;
+    outline-offset:4px;
+  }
+
+  .cta .ping{
+    position:relative;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#1d1006;
+    flex:none;
+  }
+
+  .cta .ping::before,
+  .cta .ping::after{
+    content:'';
+    position:absolute;
+    inset:-6px;
+    border-radius:50%;
+    border:1.5px solid rgba(29,16,6,.6);
+    animation:ping 2.2s cubic-bezier(.2,.6,.3,1) infinite;
+  }
+
+  .cta .ping::after{
+    animation-delay:1.1s;
+  }
+
+  @keyframes ping{
+    0%{
+      transform:scale(.35);
+      opacity:1
+    }
+
+    100%{
+      transform:scale(1.5);
+      opacity:0
+    }
+  }
+
+  /* ---------- readout ---------- */
+
+  .readout{
+    position:absolute;
+    z-index:2;
+    right:5%;
+    bottom:7%;
+    font:12px/1.7 ui-monospace,"JetBrains Mono",monospace;
+    color:var(--muted);
+    text-align:right;
+    padding:14px 16px;
+    border-radius:8px;
+    background:rgba(6,16,22,.55);
+    border:1px solid rgba(255,255,255,.09);
+    backdrop-filter:blur(8px);
+    min-width:200px;
+    pointer-events:none;
+  }
+
+  .readout .row{
+    display:flex;
+    justify-content:space-between;
+    gap:18px;
+  }
+
+  .readout .row b{
+    color:var(--text);
+    font-weight:500;
+  }
+
+  .readout .flag{
+    color:var(--alert);
+    display:flex;
+    align-items:center;
+    gap:7px;
+    justify-content:flex-end;
+    margin-bottom:8px;
+  }
+
+  .readout .dot{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--alert);
+    box-shadow:0 0 0 0 rgba(240,138,69,.6);
+    animation:pulse 2.2s infinite;
+  }
+
+  @keyframes pulse{
+    0%{
+      box-shadow:0 0 0 0 rgba(240,138,69,.55)
+    }
+
+    70%{
+      box-shadow:0 0 0 9px rgba(240,138,69,0)
+    }
+
+    100%{
+      box-shadow:0 0 0 0 rgba(240,138,69,0)
+    }
+  }
+
+  .hint{
+    position:absolute;
+    z-index:2;
+    left:50%;
+    bottom:5%;
+    transform:translateX(-50%);
+    font:12px ui-monospace,monospace;
+    color:var(--muted);
+    opacity:.65;
+    pointer-events:none;
+  }
+
+  @media (max-width:860px){
+    .hero-copy{
+      width:100%;
+      height:auto;
+      top:6%;
+      padding:0 24px;
+    }
+
+    .readout{
+      right:24px;
+      bottom:10%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .dot,
+    .cta .ping::before,
+    .cta .ping::after{
+      animation:none
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+
+  <canvas id="gl"></canvas>
+
+  <div class="hero-copy">
+
+    <h1>
+      From <span>detected slick</span> to the vessel responsible.
+    </h1>
+
+    <p class="lede">
+      Satellite passes flag a spill the moment it surfaces. We hindcast the drift,
+      cross-reference AIS tracks, and score the vessels that were there.
+    </p>
+
+    <!-- RUN DETECTION BUTTON -->
+    <button class="cta" onclick="runDetection()">
+      <span class="ping"></span>
+      Run a detection
+    </button>
+
+  </div>
+
+  <div class="readout">
+
+    <div class="flag">
+      <span class="dot"></span>
+      VESSEL FLAGGED
+    </div>
+
+    <div class="row">
+      <span>Spill centroid</span>
+      <b>19.4&deg;N, 71.9&deg;E</b>
+    </div>
+
+    <div class="row">
+      <span>Nearest vessel</span>
+      <b>MV KESTREL-7</b>
+    </div>
+
+    <div class="row">
+      <span>Match score</span>
+      <b>0.91</b>
+    </div>
+
+    <div class="row">
+      <span>Pass window</span>
+      <b>T&minus;14h</b>
+    </div>
+
+  </div>
+
+  <p class="hint">
+    drag to rotate
+  </p>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   RUN DETECTION
+   Redirects the user to index.html
+   ========================================================= */
+
+function runDetection() {
+    window.location.href = "index.html";
+}
+
+
+/* =========================================================
+   THREE.JS GLOBE
+   ========================================================= */
+
+(function(){
+
+  const reduced =
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const canvas =
+    document.getElementById('gl');
+
+  const renderer =
+    new THREE.WebGLRenderer({
+      canvas,
+      antialias:true,
+      alpha:true
+    });
+
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  renderer.outputEncoding =
+    THREE.sRGBEncoding;
+
+  renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
+
+  renderer.toneMappingExposure = 1.1;
+
+
+  /* ---------- Scene ---------- */
+
+  const scene =
+    new THREE.Scene();
+
+  const camera =
+    new THREE.PerspectiveCamera(
+      38,
+      1,
+      0.1,
+      100
+    );
+
+  const camBase =
+    new THREE.Vector3(
+      -1.55,
+      0.25,
+      8.2
+    );
+
+  camera.position.copy(camBase);
+
+
+  /* ---------- Lights ---------- */
+
+  scene.add(
+    new THREE.AmbientLight(
+      0x7f9bb0,
+      0.5
+    )
+  );
+
+  const sun =
+    new THREE.DirectionalLight(
+      0xfff2dc,
+      1.9
+    );
+
+  sun.position.set(-4,3,5);
+  scene.add(sun);
+
+
+  const fill =
+    new THREE.DirectionalLight(
+      0x5ea8c9,
+      0.7
+    );
+
+  fill.position.set(5,-1.5,-3);
+  scene.add(fill);
+
+
+  const rimLight =
+    new THREE.PointLight(
+      0x6fd6e0,
+      1.2,
+      14
+    );
+
+  rimLight.position.set(
+    -3,
+    1.5,
+    -4
+  );
+
+  scene.add(rimLight);
+
+
+  /* ---------- Starfield ---------- */
+
+  const starGeom =
+    new THREE.BufferGeometry();
+
+  const starCount = 600;
+
+  const starPos =
+    new Float32Array(
+      starCount * 3
+    );
+
+  for(let i=0;i<starCount;i++){
+
+    const r =
+      25 + Math.random()*45;
+
+    const th =
+      Math.random()*Math.PI*2;
+
+    const ph =
+      Math.acos(
+        2*Math.random()-1
+      );
+
+    starPos[i*3] =
+      r*Math.sin(ph)*Math.cos(th);
+
+    starPos[i*3+1] =
+      r*Math.cos(ph);
+
+    starPos[i*3+2] =
+      r*Math.sin(ph)*Math.sin(th);
+  }
+
+  starGeom.setAttribute(
+    'position',
+    new THREE.BufferAttribute(
+      starPos,
+      3
+    )
+  );
+
+  const starField =
+    new THREE.Points(
+      starGeom,
+      new THREE.PointsMaterial({
+        color:0xbfd8e0,
+        size:0.05,
+        transparent:true,
+        opacity:0.6
+      })
+    );
+
+  scene.add(starField);
+
+
+  /* ---------- Noise ---------- */
+
+  function hash3(x,y,z){
+
+    let h =
+      Math.imul(x,374761393) ^
+      Math.imul(y,668265263) ^
+      Math.imul(z,1274126177);
+
+    h =
+      Math.imul(
+        h ^ (h>>>13),
+        1274126177
+      );
+
+    h ^= h>>>16;
+
+    return (h>>>0)/4294967296;
+  }
+
+
+  function vnoise(x,y,z){
+
+    const xi=Math.floor(x);
+    const yi=Math.floor(y);
+    const zi=Math.floor(z);
+
+    const xf=x-xi;
+    const yf=y-yi;
+    const zf=z-zi;
+
+    const u=
+      xf*xf*(3-2*xf);
+
+    const v=
+      yf*yf*(3-2*yf);
+
+    const w=
+      zf*zf*(3-2*zf);
+
+    const a=hash3(xi,yi,zi);
+    const b=hash3(xi+1,yi,zi);
+    const c=hash3(xi,yi+1,zi);
+    const d=hash3(xi+1,yi+1,zi);
+
+    const e=hash3(xi,yi,zi+1);
+    const f=hash3(xi+1,yi,zi+1);
+    const g=hash3(xi,yi+1,zi+1);
+    const h=hash3(xi+1,yi+1,zi+1);
+
+    const x1=a+(b-a)*u;
+    const x2=c+(d-c)*u;
+    const x3=e+(f-e)*u;
+    const x4=g+(h-g)*u;
+
+    const y1=x1+(x2-x1)*v;
+    const y2=x3+(x4-x3)*v;
+
+    return y1+(y2-y1)*w;
+  }
+
+
+  function fbm(x,y,z,oct){
+
+    let s=0;
+    let amp=0.5;
+    let tot=0;
+    let f=1;
+
+    for(let i=0;i<oct;i++){
+
+      s +=
+        amp *
+        vnoise(
+          x*f,
+          y*f,
+          z*f
+        );
+
+      tot += amp;
+
+      f *= 2.03;
+      amp *= 0.5;
+    }
+
+    return s/tot;
+  }
+
+
+  const smooth =
+    (a,b,x)=>{
+      const t=
+        Math.min(
+          1,
+          Math.max(
+            0,
+            (x-a)/(b-a)
+          )
+        );
+
+      return t*t*(3-2*t);
+    };
+
+
+  const mix =
+    (a,b,t)=>
+      a+(b-a)*t;
+
+
+  /* ---------- Spill / vessels ---------- */
+
+  const SPILL = {
+    u:0.58,
+    v:0.46
+  };
+
+  const VESSEL_FLAGGED = {
+    u:0.655,
+    v:0.515
+  };
+
+  const VESSEL_OTHER = [
+    {u:0.52,v:0.40},
+    {u:0.64,v:0.37},
+    {u:0.55,v:0.57}
+  ];
+
+
+  function uvToVec3(
+    u,
+    v,
+    radius
+  ){
+
+    const theta =
+      u*Math.PI*2;
+
+    const phi =
+      v*Math.PI;
+
+    return new THREE.Vector3(
+      -radius*
+      Math.cos(theta)*
+      Math.sin(phi),
+
+      radius*
+      Math.cos(phi),
+
+      radius*
+      Math.sin(theta)*
+      Math.sin(phi)
+    );
+  }
+
+
+  const spillUnit =
+    uvToVec3(
+      SPILL.u,
+      SPILL.v,
+      1
+    );
+
+
+  /* ---------- Procedural planet ---------- */
+
+  const TW=1024;
+  const TH=512;
+
+  function mkCanvas(w,h){
+
+    const c =
+      document.createElement('canvas');
+
+    c.width=w;
+    c.height=h;
+
+    return c;
+  }
+
+
+  const base =
+    mkCanvas(TW,TH);
+
+  const bctx =
+    base.getContext('2d');
+
+
+  const bumpC =
+    mkCanvas(TW,TH);
+
+  const hctx =
+    bumpC.getContext('2d');
+
+
+  const roughC =
+    mkCanvas(TW,TH);
+
+  const rctx =
+    roughC.getContext('2d');
+
+
+  const SEA=0.58;
+
+
+  function buildTerrain(){
+
+    const bi =
+      bctx.createImageData(
+        TW,
+        TH
+      );
+
+    const bd=bi.data;
+
+
+    const hi =
+      hctx.createImageData(
+        TW,
+        TH
+      );
+
+    const hd=hi.data;
+
+
+    const ri =
+      rctx.createImageData(
+        TW,
+        TH
+      );
+
+    const rd=ri.data;
+
+
+    let i=0;
+
+
+    for(
+      let py=0;
+      py<TH;
+      py++
+    ){
+
+      const v =
+        (py+0.5)/TH;
+
+      const phi =
+        v*Math.PI;
+
+      const sp =
+        Math.sin(phi);
+
+      const cp =
+        Math.cos(phi);
+
+
+      for(
+        let px=0;
+        px<TW;
+        px++,
+        i+=4
+      ){
+
+        const u =
+          (px+0.5)/TW;
+
+        const th =
+          u*Math.PI*2;
+
+        const x =
+          -Math.cos(th)*sp;
+
+        const y=cp;
+
+        const z =
+          Math.sin(th)*sp;
+
+
+        const wv =
+          vnoise(
+            x*3.3+7,
+            y*3.3+2,
+            z*3.3+9
+          )-0.5;
+
+
+        let h =
+          fbm(
+            x*1.7+wv*0.55+3.1,
+            y*1.7+wv*0.55+1.7,
+            z*1.7+wv*0.55+5.3,
+            5
+          );
+
+
+        h =
+          0.5+
+          (h-0.5)*1.6;
+
+
+        const ang =
+          Math.acos(
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                x*spillUnit.x+
+                y*spillUnit.y+
+                z*spillUnit.z
+              )
+            )
+          );
+
+
+        h -=
+          0.45*
+          smooth(
+            1.0,
+            0.45,
+            ang
+          );
+
+
+        const lat =
+          Math.abs(y);
+
+        let ice=0;
+
+
+        if(lat>0.72){
+
+          const n2 =
+            vnoise(
+              x*6,
+              y*6,
+              z*6
+            );
+
+          ice =
+            smooth(
+              0.84,
+              0.93,
+              lat+
+              (n2-0.5)*0.14
+            );
+        }
+
+
+        let r,g,b,rough,bump;
+
+
+        if(h>SEA){
+
+          const e=h-SEA;
+
+          const m=
+            fbm(
+              x*2.4+11,
+              y*2.4+4,
+              z*2.4+8,
+              3
+            );
+
+          const dry =
+            smooth(
+              0.52,
+              0.36,
+              m
+            )*
+            smooth(
+              0.75,
+              0.15,
+              lat
+            );
+
+
+          r=mix(52,98,m);
+          g=mix(88,124,m);
+          b=mix(44,62,m);
+
+
+          r=mix(r,182,dry);
+          g=mix(g,154,dry);
+          b=mix(b,106,dry);
+
+
+          const alt =
+            smooth(
+              0.10,
+              0.30,
+              e
+            );
+
+
+          r=mix(r,128,alt);
+          g=mix(g,116,alt);
+          b=mix(b,102,alt);
+
+
+          const tundra =
+            smooth(
+              0.62,
+              0.82,
+              lat
+            );
+
+
+          r=mix(r,150,tundra);
+          g=mix(g,150,tundra);
+          b=mix(b,140,tundra);
+
+
+          const snow =
+            smooth(
+              0.27,
+              0.36,
+              e
+            );
+
+
+          r=mix(r,236,snow);
+          g=mix(g,240,snow);
+          b=mix(b,244,snow);
+
+
+          const coast =
+            1-
+            smooth(
+              0.0,
+              0.022,
+              e
+            );
+
+
+          r=mix(
+            r,
+            198,
+            coast*0.75
+          );
+
+          g=mix(
+            g,
+            184,
+            coast*0.75
+          );
+
+          b=mix(
+            b,
+            134,
+            coast*0.75
+          );
+
+
+          rough=225;
+          bump=
+            110+
+            Math.min(
+              120,
+              e*420
+            );
+
+        }else{
+
+          const d=SEA-h;
+
+          const depth =
+            Math.pow(
+              Math.min(
+                1,
+                d/0.30
+              ),
+              0.7
+            );
+
+
+          r=mix(
+            38,
+            10,
+            depth
+          );
+
+          g=mix(
+            136,
+            44,
+            depth
+          );
+
+          b=mix(
+            152,
+            76,
+            depth
+          );
+
+
+          const shore =
+            smooth(
+              0.06,
+              0.0,
+              d
+            );
+
+
+          r=mix(
+            r,
+            120,
+            shore*0.5
+          );
+
+          g=mix(
+            g,
+            196,
+            shore*0.5
+          );
+
+          b=mix(
+            b,
+            184,
+            shore*0.5
+          );
+
+
+          rough=85;
+          bump=110;
+        }
+
+
+        if(ice>0){
+
+          r=mix(r,232,ice);
+          g=mix(g,240,ice);
+          b=mix(b,246,ice);
+
+          rough=mix(
+            rough,
+            170,
+            ice
+          );
+
+          bump=mix(
+            bump,
+            118,
+            ice
+          );
+        }
+
+
+        bd[i]=r;
+        bd[i+1]=g;
+        bd[i+2]=b;
+        bd[i+3]=255;
+
+
+        hd[i]=bump;
+        hd[i+1]=bump;
+        hd[i+2]=bump;
+        hd[i+3]=255;
+
+
+        rd[i]=rough;
+        rd[i+1]=rough;
+        rd[i+2]=rough;
+        rd[i+3]=255;
+
+      }
+    }
+
+
+    bctx.putImageData(
+      bi,
+      0,
+      0
+    );
+
+    hctx.putImageData(
+      hi,
+      0,
+      0
+    );
+
+    rctx.putImageData(
+      ri,
+      0,
+      0
+    );
+  }
+
+
+  buildTerrain();
+
+
+  /* ---------- Clouds ---------- */
+
+  const CW=640;
+  const CH=320;
+
+  const cloudC =
+    mkCanvas(CW,CH);
+
+  const cctx =
+    cloudC.getContext('2d');
+
+
+  const hazeC =
+    mkCanvas(CW,CH);
+
+  const hzctx =
+    hazeC.getContext('2d');
+
+
+  (function buildClouds(){
+
+    const ci =
+      cctx.createImageData(
+        CW,
+        CH
+      );
+
+    const cd=ci.data;
+
+
+    const hi =
+      hzctx.createImageData(
+        CW,
+        CH
+      );
+
+    const hd=hi.data;
+
+
+    let i=0;
+
+
+    for(
+      let py=0;
+      py<CH;
+      py++
+    ){
+
+      const v =
+        (py+0.5)/CH;
+
+      const phi =
+        v*Math.PI;
+
+      const sp =
+        Math.sin(phi);
+
+      const cp =
+        Math.cos(phi);
+
+
+      for(
+        let px=0;
+        px<CW;
+        px++,
+        i+=4
+      ){
+
+        const u =
+          (px+0.5)/CW;
+
+        const th =
+          u*Math.PI*2;
+
+
+        const x =
+          -Math.cos(th)*sp;
+
+        const y=cp;
+
+        const z =
+          Math.sin(th)*sp;
+
+
+        const w =
+          vnoise(
+            x*2+5,
+            y*2+9,
+            z*2+1
+          )-0.5;
+
+
+        const c =
+          fbm(
+            x*2.2+20+w*0.8,
+            y*3.1+8,
+            z*2.2+13+w*0.8,
+            5
+          );
+
+
+        let a =
+          smooth(
+            0.44,
+            0.72,
+            c
+          );
+
+
+        const ang =
+          Math.acos(
+            Math.max(
+              -1,
+              Math.min(
+                1,
+                x*spillUnit.x+
+                y*spillUnit.y+
+                z*spillUnit.z
+              )
+            )
+          );
+
+
+        a *=
+          1-
+          0.92*
+          smooth(
+            0.95,
+            0.5,
+            ang
+          );
+
+
+        cd[i]=255;
+        cd[i+1]=255;
+        cd[i+2]=255;
+        cd[i+3]=a*245;
+
+
+        const c2 =
+          fbm(
+            x*1.5-9+w*0.6,
+            y*1.9+14,
+            z*1.5+3+w*0.6,
+            4
+          );
+
+
+        let a2 =
+          smooth(
+            0.50,
+            0.78,
+            c2
+          )*0.65;
+
+
+        a2 *=
+          1-
+          0.85*
+          smooth(
+            0.95,
+            0.55,
+            ang
+          );
+
+
+        hd[i]=255;
+        hd[i+1]=255;
+        hd[i+2]=255;
+        hd[i+3]=a2*180;
+
+      }
+    }
+
+
+    cctx.putImageData(
+      ci,
+      0,
+      0
+    );
+
+    hzctx.putImageData(
+      hi,
+      0,
+      0
+    );
+
+  })();
+
+
+  /* ---------- Oil slick ---------- */
+
+  const work =
+    mkCanvas(TW,TH);
+
+  const wctx =
+    work.getContext('2d');
+
+  const workTex =
+    new THREE.CanvasTexture(work);
+
+  workTex.encoding =
+    THREE.sRGBEncoding;
+
+  workTex.anisotropy=4;
+
+
+  function smoothPath(
+    ctx,
+    pts
+  ){
+
+    const n=pts.length;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      (pts[n-1].x+pts[0].x)/2,
+      (pts[n-1].y+pts[0].y)/2
+    );
+
+
+    for(
+      let i=0;
+      i<n;
+      i++
+    ){
+
+      const p=pts[i];
+      const q=
+        pts[(i+1)%n];
+
+
+      ctx.quadraticCurveTo(
+        p.x,
+        p.y,
+        (p.x+q.x)/2,
+        (p.y+q.y)/2
+      );
+    }
+
+
+    ctx.closePath();
+  }
+
+
+  function slickOutline(
+    t,
+    g,
+    SX,
+    SY,
+    driftAng
+  ){
+
+    const N=72;
+    const pts=[];
+
+    const ca=
+      Math.cos(driftAng);
+
+    const sa=
+      Math.sin(driftAng);
+
+
+    for(
+      let i=0;
+      i<N;
+      i++
+    ){
+
+      const a=
+        (i/N)*Math.PI*2;
+
+
+      const wob=
+        1+
+        0.16*
+        Math.sin(
+          3*a+t*0.5+1.2
+        )+
+        0.10*
+        Math.sin(
+          5*a-t*0.7+0.4
+        )+
+        0.05*
+        Math.sin(
+          9*a+t*0.9
+        );
+
+
+      const d=
+        Math.atan2(
+          Math.sin(a-Math.PI),
+          Math.cos(a-Math.PI)
+        );
+
+
+      const tail=
+        0.85*
+        Math.exp(
+          -(d*d)/0.07
+        )*
+        (
+          1+
+          0.12*
+          Math.sin(t*0.8)
+        );
+
+
+      const lx=
+        Math.cos(a)*
+        40*g*wob*
+        (1+tail);
+
+
+      const ly=
+        Math.sin(a)*
+        22*g*wob;
+
+
+      pts.push({
+        x:
+          SX+
+          lx*ca-
+          ly*sa,
+
+        y:
+          SY+
+          lx*sa+
+          ly*ca
+      });
+    }
+
+
+    return pts;
+  }
+
+
+  function tendrilPath(
+    ctx,
+    ox,
+    oy,
+    ang,
+    len,
+    wid,
+    t,
+    k
+  ){
+
+    const n=14;
+
+    const nx=
+      -Math.sin(ang);
+
+    const ny=
+      Math.cos(ang);
+
+    const L=[];
+    const R=[];
+
+
+    for(
+      let i=0;
+      i<=n;
+      i++
+    ){
+
+      const s=i/n;
+
+
+      const sway=
+        Math.sin(
+          s*3.2+
+          t*0.6+
+          k*1.7
+        )*
+        len*
+        0.16*
+        s;
+
+
+      const cx=
+        ox+
+        Math.cos(ang)*
+        len*s+
+        nx*sway;
+
+
+      const cy=
+        oy+
+        Math.sin(ang)*
+        len*s+
+        ny*sway;
+
+
+      const w=
+        Math.max(
+          0.3,
+          wid*
+          Math.pow(
+            1-s,
+            1.15
+          )*
+          (
+            0.7+
+            0.3*
+            Math.sin(
+              s*9+k
+            )
+          )
+        );
+
+
+      L.push({
+        x:cx+nx*w,
+        y:cy+ny*w
+      });
+
+
+      R.push({
+        x:cx-nx*w,
+        y:cy-ny*w
+      });
+    }
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      L[0].x,
+      L[0].y
+    );
+
+
+    for(
+      let i=1;
+      i<=n;
+      i++
+    ){
+      ctx.lineTo(
+        L[i].x,
+        L[i].y
+      );
+    }
+
+
+    for(
+      let i=n;
+      i>=0;
+      i--
+    ){
+      ctx.lineTo(
+        R[i].x,
+        R[i].y
+      );
+    }
+
+
+    ctx.closePath();
+  }
+
+
+  let tPhase=0;
+
+
+  function redrawWorking(){
+
+    const t=tPhase;
+
+    wctx.drawImage(
+      base,
+      0,
+      0
+    );
+
+
+    const SX=
+      SPILL.u*TW;
+
+    const SY=
+      SPILL.v*TH;
+
+
+    const VX=
+      VESSEL_FLAGGED.u*TW;
+
+    const VY=
+      VESSEL_FLAGGED.v*TH;
+
+
+    const tailAng=
+      Math.atan2(
+        VY-SY,
+        VX-SX
+      );
+
+
+    const driftAng=
+      tailAng+Math.PI;
+
+
+    const dx=
+      Math.cos(driftAng);
+
+    const dy=
+      Math.sin(driftAng);
+
+
+    /* drift vectors */
+
+    for(let i=0;i<5;i++){
+
+      const ang=
+        driftAng+
+        (i-2)*0.13;
+
+
+      const len=
+        128+
+        (2-Math.abs(i-2))*16;
+
+
+      wctx.save();
+
+      wctx.strokeStyle=
+        'rgba(130,222,232,0.5)';
+
+      wctx.lineWidth=1.8;
+
+      wctx.setLineDash([
+        6,
+        8
+      ]);
+
+      wctx.lineDashOffset=
+        -(t*34);
+
+
+      wctx.beginPath();
+
+
+      wctx.moveTo(
+        SX+
+        Math.cos(ang)*34,
+        SY+
+        Math.sin(ang)*34
+      );
+
+
+      wctx.lineTo(
+        SX+
+        Math.cos(ang)*len,
+        SY+
+        Math.sin(ang)*len
+      );
+
+
+      wctx.stroke();
+
+      wctx.setLineDash([]);
+
+
+      const hx2=
+        SX+
+        Math.cos(ang)*len;
+
+      const hy2=
+        SY+
+        Math.sin(ang)*len;
+
+
+      wctx.beginPath();
+
+      wctx.moveTo(
+        hx2,
+        hy2
+      );
+
+
+      wctx.lineTo(
+        hx2-
+        8*Math.cos(
+          ang-0.42
+        ),
+
+        hy2-
+        8*Math.sin(
+          ang-0.42
+        )
+      );
+
+
+      wctx.lineTo(
+        hx2-
+        8*Math.cos(
+          ang+0.42
+        ),
+
+        hy2-
+        8*Math.sin(
+          ang+0.42
+        )
+      );
+
+
+      wctx.closePath();
+
+      wctx.fillStyle=
+        'rgba(130,222,232,0.65)';
+
+      wctx.fill();
+
+      wctx.restore();
+    }
+
+
+    const g=
+      0.95+
+      0.07*
+      Math.sin(t*0.5);
+
+
+    const pts=
+      slickOutline(
+        t,
+        g,
+        SX,
+        SY,
+        driftAng
+      );
+
+
+    const hx=
+      SX+
+      dx*42*g;
+
+    const hy=
+      SY+
+      dy*42*g;
+
+
+    const tx=
+      SX-
+      dx*80*g;
+
+    const ty=
+      SY-
+      dy*80*g;
+
+
+    /* feathered halo */
+
+    wctx.save();
+
+    wctx.shadowColor=
+      'rgba(22,14,8,0.7)';
+
+    wctx.shadowBlur=30;
+
+    wctx.fillStyle=
+      'rgba(24,15,8,0.30)';
+
+    smoothPath(
+      wctx,
+      pts
+    );
+
+    wctx.fill();
+
+    wctx.restore();
+
+
+    /* tendrils */
+
+    const tend=[
+      [-0.62,88],
+      [-0.25,104],
+      [0.22,96],
+      [0.58,76],
+      [-0.98,56],
+      [0.98,52]
+    ];
+
+
+    tend.forEach(
+      ([off,len],k)=>{
+
+        const ang=
+          tailAng+off;
+
+
+        const ox=
+          SX+
+          Math.cos(ang)*28*g;
+
+        const oy=
+          SY+
+          Math.sin(ang)*28*g;
+
+
+        const gr=
+          wctx.createLinearGradient(
+            ox,
+            oy,
+            ox+
+            Math.cos(ang)*len,
+            oy+
+            Math.sin(ang)*len
+          );
+
+
+        gr.addColorStop(
+          0,
+          'rgba(22,14,8,0.75)'
+        );
+
+        gr.addColorStop(
+          1,
+          'rgba(22,14,8,0)'
+        );
+
+
+        wctx.save();
+
+        wctx.shadowColor=
+          'rgba(22,14,8,0.5)';
+
+        wctx.shadowBlur=8;
+
+        wctx.fillStyle=gr;
+
+
+        tendrilPath(
+          wctx,
+          ox,
+          oy,
+          ang,
+          len,
+          7.5-
+          Math.abs(off)*3,
+          t,
+          k
+        );
+
+
+        wctx.fill();
+
+        wctx.restore();
+      }
+    );
+
+
+    /* body */
+
+    const bg=
+      wctx.createLinearGradient(
+        hx,
+        hy,
+        tx,
+        ty
+      );
+
+
+    bg.addColorStop(
+      0,
+      'rgba(13,8,4,0.96)'
+    );
+
+    bg.addColorStop(
+      0.5,
+      'rgba(22,14,8,0.92)'
+    );
+
+    bg.addColorStop(
+      1,
+      'rgba(38,26,14,0.55)'
+    );
+
+
+    wctx.fillStyle=bg;
+
+    smoothPath(
+      wctx,
+      pts
+    );
+
+    wctx.fill();
+
+
+    /* inner mottling */
+
+    wctx.save();
+
+    smoothPath(
+      wctx,
+      pts
+    );
+
+    wctx.clip();
+
+
+    for(let k=0;k<4;k++){
+
+      const cx=
+        SX+
+        dx*(12-k*17)+
+        Math.sin(
+          t*0.3+k*2
+        )*6;
+
+
+      const cy=
+        SY+
+        dy*(12-k*17)+
+        Math.cos(
+          t*0.27+k*1.6
+        )*5;
+
+
+      const rr=
+        13+k*3;
+
+
+      const mg=
+        wctx.createRadialGradient(
+          cx,
+          cy,
+          0,
+          cx,
+          cy,
+          rr
+        );
+
+
+      mg.addColorStop(
+        0,
+        'rgba(5,3,2,0.55)'
+      );
+
+      mg.addColorStop(
+        1,
+        'rgba(5,3,2,0)'
+      );
+
+
+      wctx.fillStyle=mg;
+
+      wctx.fillRect(
+        cx-rr,
+        cy-rr,
+        rr*2,
+        rr*2
+      );
+    }
+
+
+    const sh=
+      Math.sin(
+        t*0.35
+      )*26;
+
+
+    const ig=
+      wctx.createLinearGradient(
+        SX-dx*70+dx*sh,
+        SY-dy*70+dy*sh,
+        SX+dx*70+dx*sh,
+        SY+dy*70+dy*sh
+      );
+
+
+    ig.addColorStop(
+      0,
+      'rgba(110,80,210,0)'
+    );
+
+    ig.addColorStop(
+      0.22,
+      'rgba(70,205,215,0.26)'
+    );
+
+    ig.addColorStop(
+      0.45,
+      'rgba(235,195,100,0.22)'
+    );
+
+    ig.addColorStop(
+      0.68,
+      'rgba(210,90,170,0.20)'
+    );
+
+    ig.addColorStop(
+      0.88,
+      'rgba(80,190,220,0.16)'
+    );
+
+    ig.addColorStop(
+      1,
+      'rgba(80,80,200,0)'
+    );
+
+
+    wctx.globalCompositeOperation=
+      'lighter';
+
+    wctx.fillStyle=ig;
+
+    wctx.fillRect(
+      SX-130,
+      SY-130,
+      260,
+      260
+    );
+
+
+    const hl=
+      wctx.createRadialGradient(
+        SX-10,
+        SY-8,
+        0,
+        SX-10,
+        SY-8,
+        26
+      );
+
+
+    hl.addColorStop(
+      0,
+      'rgba(190,225,230,0.16)'
+    );
+
+    hl.addColorStop(
+      1,
+      'rgba(190,225,230,0)'
+    );
+
+
+    wctx.fillStyle=hl;
+
+    wctx.fillRect(
+      SX-40,
+      SY-40,
+      80,
+      80
+    );
+
+
+    wctx.globalCompositeOperation=
+      'source-over';
+
+    wctx.restore();
+
+
+    /* iridescent rim */
+
+    const rg=
+      wctx.createLinearGradient(
+        hx,
+        hy,
+        tx,
+        ty
+      );
+
+
+    rg.addColorStop(
+      0,
+      'rgba(110,210,220,0.45)'
+    );
+
+    rg.addColorStop(
+      0.5,
+      'rgba(220,190,120,0.30)'
+    );
+
+    rg.addColorStop(
+      1,
+      'rgba(180,110,190,0.22)'
+    );
+
+
+    wctx.lineWidth=1.4;
+    wctx.strokeStyle=rg;
+
+    smoothPath(
+      wctx,
+      pts
+    );
+
+    wctx.stroke();
+
+
+    /* droplets */
+
+    for(let k=0;k<8;k++){
+
+      const dist=
+        62+k*11;
+
+      const lat=
+        Math.sin(
+          k*2.3+t*0.4
+        )*
+        (6+k*1.2);
+
+
+      const px2=
+        SX-
+        dx*dist-
+        dy*lat;
+
+
+      const py2=
+        SY-
+        dy*dist+
+        dx*lat;
+
+
+      const rad=
+        2.2+
+        (k%3)*1.5;
+
+
+      wctx.beginPath();
+
+      wctx.arc(
+        px2,
+        py2,
+        rad,
+        0,
+        Math.PI*2
+      );
+
+
+      wctx.fillStyle=
+        'rgba(24,16,9,'+
+        (0.62-k*0.04)+
+        ')';
+
+      wctx.fill();
+    }
+
+
+    workTex.needsUpdate=true;
+  }
+
+
+  redrawWorking();
+
+
+  /* ---------- Globe ---------- */
+
+  const globeGroup =
+    new THREE.Group();
+
+  scene.add(globeGroup);
+
+
+  const bumpTex =
+    new THREE.CanvasTexture(
+      bumpC
+    );
+
+
+  const roughTex =
+    new THREE.CanvasTexture(
+      roughC
+    );
+
+
+  const RADIUS=2.15;
+
+
+  const sphere =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        RADIUS,
+        96,
+        64
+      ),
+
+      new THREE.MeshPhysicalMaterial({
+        map:workTex,
+        bumpMap:bumpTex,
+        bumpScale:1.5,
+        roughnessMap:roughTex,
+        roughness:1.0,
+        metalness:0.0
+      })
+    );
+
+
+  globeGroup.add(sphere);
+
+
+  /* ---------- Clouds ---------- */
+
+  const cloudTex =
+    new THREE.CanvasTexture(
+      cloudC
+    );
+
+  cloudTex.encoding=
+    THREE.sRGBEncoding;
+
+
+  const clouds =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        RADIUS*1.014,
+        64,
+        48
+      ),
+
+      new THREE.MeshLambertMaterial({
+        map:cloudTex,
+        transparent:true,
+        depthWrite:false,
+        opacity:0.95
+      })
+    );
+
+
+  globeGroup.add(clouds);
+
+
+  /* ---------- Haze ---------- */
+
+  const hazeTex =
+    new THREE.CanvasTexture(
+      hazeC
+    );
+
+  hazeTex.encoding=
+    THREE.sRGBEncoding;
+
+
+  const haze =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        RADIUS*1.028,
+        48,
+        32
+      ),
+
+      new THREE.MeshBasicMaterial({
+        map:hazeTex,
+        transparent:true,
+        depthWrite:false,
+        opacity:0.55
+      })
+    );
+
+
+  globeGroup.add(haze);
+
+
+  /* ---------- Atmosphere ---------- */
+
+  const atmo =
+    new THREE.Mesh(
+
+      new THREE.SphereGeometry(
+        RADIUS*1.14,
+        64,
+        48
+      ),
+
+      new THREE.ShaderMaterial({
+
+        vertexShader:
+        `
+        varying vec3 vN;
+
+        void main(){
+          vN =
+            normalize(
+              normalMatrix *
+              normal
+            );
+
+          gl_Position =
+            projectionMatrix *
+            modelViewMatrix *
+            vec4(
+              position,
+              1.0
+            );
+        }
+        `,
+
+        fragmentShader:
+        `
+        varying vec3 vN;
+
+        void main(){
+
+          float d =
+            clamp(
+              -dot(
+                vN,
+                vec3(
+                  0.0,
+                  0.0,
+                  1.0
+                )
+              ),
+              0.0,
+              1.0
+            );
+
+          float i =
+            min(
+              pow(
+                d/0.5,
+                2.2
+              ),
+              1.0
+            );
+
+          gl_FragColor =
+            vec4(
+              vec3(
+                0.30,
+                0.74,
+                0.92
+              )*
+              i*
+              0.95,
+              1.0
+            );
+        }
+        `,
+
+        blending:
+          THREE.AdditiveBlending,
+
+        side:
+          THREE.BackSide,
+
+        transparent:true,
+
+        depthWrite:false
+      })
+    );
+
+
+  scene.add(atmo);
+
+
+  /* ---------- Vessel markers ---------- */
+
+  function makeDotTexture(color){
+
+    const c =
+      mkCanvas(
+        64,
+        64
+      );
+
+    const cx =
+      c.getContext('2d');
+
+
+    const gr =
+      cx.createRadialGradient(
+        32,
+        32,
+        0,
+        32,
+        32,
+        32
+      );
+
+
+    gr.addColorStop(
+      0,
+      color
+    );
+
+    gr.addColorStop(
+      0.4,
+      color
+    );
+
+    gr.addColorStop(
+      1,
+      'rgba(0,0,0,0)'
+    );
+
+
+    cx.fillStyle=gr;
+
+    cx.beginPath();
+
+    cx.arc(
+      32,
+      32,
+      32,
+      0,
+      Math.PI*2
+    );
+
+    cx.fill();
+
+
+    const tx =
+      new THREE.CanvasTexture(c);
+
+    tx.encoding=
+      THREE.sRGBEncoding;
+
+    return tx;
+  }
+
+
+  const flaggedTex =
+    makeDotTexture(
+      'rgba(240,138,69,0.95)'
+    );
+
+
+  const normalTex =
+    makeDotTexture(
+      'rgba(150,200,210,0.85)'
+    );
+
+
+  function addVessel(
+    uv,
+    texture,
+    scale
+  ){
+
+    const pos =
+      uvToVec3(
+        uv.u,
+        uv.v,
+        RADIUS*1.02
+      );
+
+
+    const sprite =
+      new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map:texture,
+          transparent:true,
+          depthWrite:false
+        })
+      );
+
+
+    sprite.position.copy(pos);
+
+    sprite.scale.set(
+      scale,
+      scale,
+      1
+    );
+
+
+    globeGroup.add(sprite);
+
+    return sprite;
+  }
+
+
+  addVessel(
+    VESSEL_FLAGGED,
+    flaggedTex,
+    0.22
+  );
+
+
+  const flaggedHalo =
+    addVessel(
+      VESSEL_FLAGGED,
+      flaggedTex,
+      0.36
+    );
+
+
+  flaggedHalo.material.opacity=
+    0.35;
+
+
+  VESSEL_OTHER.forEach(
+    uv =>
+      addVessel(
+        uv,
+        normalTex,
+        0.12
+      )
+  );
+
+
+  /* ---------- Attribution arc ---------- */
+
+  const spillPos =
+    uvToVec3(
+      SPILL.u,
+      SPILL.v,
+      RADIUS*1.02
+    );
+
+
+  const vesselPos =
+    uvToVec3(
+      VESSEL_FLAGGED.u,
+      VESSEL_FLAGGED.v,
+      RADIUS*1.02
+    );
+
+
+  const mid =
+    spillPos
+      .clone()
+      .add(vesselPos)
+      .multiplyScalar(0.5)
+      .normalize()
+      .multiplyScalar(
+        RADIUS*1.3
+      );
+
+
+  const curve =
+    new THREE.QuadraticBezierCurve3(
+      spillPos,
+      mid,
+      vesselPos
+    );
+
+
+  const arcGeom =
+    new THREE.BufferGeometry()
+      .setFromPoints(
+        curve.getPoints(40)
+      );
+
+
+  const arcMat =
+    new THREE.LineDashedMaterial({
+      color:0xf08a45,
+      dashSize:0.12,
+      gapSize:0.08,
+      transparent:true,
+      opacity:0.9
+    });
+
+
+  const arcLine =
+    new THREE.Line(
+      arcGeom,
+      arcMat
+    );
+
+
+  arcLine.computeLineDistances();
+
+  globeGroup.add(arcLine);
+
+
+  /* ---------- Satellite ---------- */
+
+  const satGroup =
+    new THREE.Group();
+
+  scene.add(satGroup);
+
+
+  const satBody =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.14,
+        0.1,
+        0.18
+      ),
+      new THREE.MeshStandardMaterial({
+        color:0xcdd8de,
+        roughness:0.5
+      })
+    );
+
+
+  const panelMat =
+    new THREE.MeshStandardMaterial({
+      color:0x2a4a6b,
+      roughness:0.4,
+      metalness:0.3
+    });
+
+
+  const panelL =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.5,
+        0.02,
+        0.2
+      ),
+      panelMat
+    );
+
+
+  panelL.position.x=-0.32;
+
+
+  const panelR =
+    new THREE.Mesh(
+      new THREE.BoxGeometry(
+        0.5,
+        0.02,
+        0.2
+      ),
+      panelMat
+    );
+
+
+  panelR.position.x=0.32;
+
+
+  satGroup.add(
+    satBody,
+    panelL,
+    panelR
+  );
+
+
+  const beam =
+    new THREE.Mesh(
+
+      new THREE.ConeGeometry(
+        0.55,
+        1.6,
+        24,
+        1,
+        true
+      ),
+
+      new THREE.MeshBasicMaterial({
+        color:0x5cc9d4,
+        transparent:true,
+        opacity:0.08,
+        side:THREE.DoubleSide,
+        depthWrite:false
+      })
+    );
+
+
+  beam.rotation.x=
+    Math.PI;
+
+  beam.position.y=-0.9;
+
+  satGroup.add(beam);
+
+
+  const SAT_RADIUS=3.15;
+  const SAT_INCLINE=0.35;
+
+
+  /* ---------- Drag / inertia ---------- */
+
+  const HOME_Y=-1.83;
+  const HOME_X=0.2;
+
+  const IDLE_SPIN=0.0075;
+
+
+  let angleY=HOME_Y;
+  let angleX=HOME_X;
+
+  let velY=0;
+  let velX=0;
+
+  let idleMix=0;
+
+  let dragging=false;
+
+  let lastPointer=null;
+
+  let lastInteraction=0;
+
+
+  function onDown(e){
+
+    dragging=true;
+
+    canvas.classList.add(
+      'dragging'
+    );
+
+    lastPointer={
+      x:e.clientX,
+      y:e.clientY
+    };
+
+    canvas.setPointerCapture(
+      e.pointerId
+    );
+  }
+
+
+  function onMove(e){
+
+    if(!dragging)
+      return;
+
+
+    const dx =
+      e.clientX-
+      lastPointer.x;
+
+
+    const dy =
+      e.clientY-
+      lastPointer.y;
+
+
+    const s=0.0062;
+
+
+    velY=
+      dx*s;
+
+
+    velX=
+      Math.max(
+        -0.014,
+        Math.min(
+          0.014,
+          dy*s*0.7
+        )
+      );
+
+
+    lastPointer={
+      x:e.clientX,
+      y:e.clientY
+    };
+
+
+    lastInteraction=
+      performance.now();
+  }
+
+
+  function onUp(){
+
+    dragging=false;
+
+    canvas.classList.remove(
+      'dragging'
+    );
+
+    lastInteraction=
+      performance.now();
+  }
+
+
+  canvas.addEventListener(
+    'pointerdown',
+    onDown
+  );
+
+  canvas.addEventListener(
+    'pointermove',
+    onMove
+  );
+
+  canvas.addEventListener(
+    'pointerup',
+    onUp
+  );
+
+  canvas.addEventListener(
+    'pointercancel',
+    onUp
+  );
+
+
+  /* ---------- Layout ---------- */
+
+  function resize(){
+
+    const w=
+      canvas.clientWidth;
+
+    const h=
+      canvas.clientHeight;
+
+
+    if(!w || !h)
+      return;
+
+
+    renderer.setSize(
+      w,
+      h,
+      false
+    );
+
+
+    camera.aspect=
+      w/h;
+
+
+    const wide=
+      camera.aspect>1.1;
+
+
+    if(wide){
+
+      camBase.set(
+        -1.55,
+        0.25,
+        8.2
+      );
+
+    }else{
+
+      const z=
+        Math.max(
+          8.2,
+          2.7/
+          (0.3443*
+          camera.aspect)
+        );
+
+
+      camBase.set(
+        0,
+        z*0.12,
+        z
+      );
+    }
+
+
+    camera.updateProjectionMatrix();
+  }
+
+
+  window.addEventListener(
+    'resize',
+    resize
+  );
+
+
+  resize();
+
+
+  /* ---------- Animation loop ---------- */
+
+  let last=
+    performance.now();
+
+  let texAccum=0;
+
+  let firstFrame=true;
+
+
+  function frame(now){
+
+    const dt=
+      Math.min(
+        (now-last)/1000,
+        0.05
+      );
+
+
+    last=now;
+
+    tPhase+=dt;
+
+
+    if(!reduced){
+
+      if(dragging){
+
+        idleMix=0;
+
+      }else if(
+        Math.abs(velY)>0.00008 ||
+        Math.abs(velX)>0.00008
+      ){
+
+        velY*=0.975;
+        velX*=0.93;
+
+        idleMix=
+          Math.min(
+            1,
+            idleMix+dt*0.3
+          );
+
+      }else if(
+        now-lastInteraction>700
+      ){
+
+        idleMix=
+          Math.min(
+            1,
+            idleMix+dt*0.6
+          );
+      }
+
+
+      angleY+=velY;
+
+
+      angleX=
+        Math.max(
+          -0.35,
+          Math.min(
+            0.45,
+            angleX+velX
+          )
+        );
+
+
+      /* idle spin */
+
+      if(idleMix>0){
+
+        const k=
+          1-
+          Math.exp(
+            -dt*0.8
+          );
+
+
+        velY+=
+          (
+            IDLE_SPIN-
+            velY
+          )*
+          k*
+          idleMix;
+
+
+        angleX+=
+          (
+            HOME_X-
+            angleX
+          )*
+          k*
+          idleMix*
+          0.6;
+      }
+
+
+      globeGroup.rotation.y=
+        angleY;
+
+      globeGroup.rotation.x=
+        angleX;
+
+
+      clouds.rotation.y=
+        tPhase*0.028;
+
+
+      haze.rotation.y=
+        -tPhase*0.016;
+
+
+      /* satellite orbit */
+
+      const satT=
+        tPhase*0.45;
+
+
+      satGroup.position.set(
+
+        Math.cos(satT)*
+        SAT_RADIUS,
+
+        Math.sin(satT)*
+        SAT_RADIUS*
+        SAT_INCLINE,
+
+        Math.sin(satT)*
+        SAT_RADIUS
+      );
+
+
+      satGroup.lookAt(
+        0,
+        0,
+        0
+      );
+
+
+      beam.material.opacity=
+        0.07+
+        0.08*
+        Math.sin(
+          tPhase*1.6
+        );
+
+
+      arcLine.material.dashOffset=
+        -(tPhase*0.9);
+
+
+      /* vessel halo */
+
+      const pulse=
+        0.85+
+        0.35*
+        Math.sin(
+          tPhase*2.4
+        );
+
+
+      flaggedHalo.scale.set(
+        0.30*pulse,
+        0.30*pulse,
+        1
+      );
+
+
+      flaggedHalo.material.opacity=
+        0.22+
+        0.18*
+        Math.sin(
+          tPhase*2.4
+        );
+
+
+      starField.rotation.y+=
+        dt*0.01;
+
+
+      camera.position.set(
+
+        camBase.x+
+        Math.sin(
+          tPhase*0.15
+        )*0.08,
+
+        camBase.y+
+        Math.sin(
+          tPhase*0.11
+        )*0.05,
+
+        camBase.z
+      );
+
+
+      camera.lookAt(
+        camBase.x,
+        camBase.y-0.25,
+        0
+      );
+
+
+      texAccum+=dt;
+
+
+      if(texAccum>0.09){
+
+        redrawWorking();
+
+        texAccum=0;
+      }
+
+    }else{
+
+      globeGroup.rotation.set(
+        HOME_X,
+        HOME_Y,
+        0
+      );
+
+      camera.position.copy(
+        camBase
+      );
+
+      camera.lookAt(
+        camBase.x,
+        camBase.y-0.25,
+        0
+      );
+    }
+
+
+    renderer.render(
+      scene,
+      camera
+    );
+
+
+    if(firstFrame){
+
+      canvas.classList.add(
+        'ready'
+      );
+
+      firstFrame=false;
+    }
+
+
+    requestAnimationFrame(
+      frame
+    );
+  }
+
+
+  requestAnimationFrame(
+    frame
+  );
+
+})();
+
+</script>
+
+</body>
+</html>
+
+
